@@ -1,13 +1,13 @@
 import { Skill } from '@/types/skill';
 import {
   CodeIcon,          // Correct
-  DatabaseIcon,     // Replaced SqlIcon
-  BarChartIcon,     // Replaced PowerBIIcon
-  FileTextIcon,     // Replaced ExcelIcon
-  ClipboardIcon,    // Replaced JamoviIcon
-  SearchIcon,       // Replaced DataAnalysisIcon
-  PieChartIcon,     // Replaced StatisticsIcon
-  ChartLineIcon,    // Replaced DataVisualizationIcon
+  DatabaseIcon,      // Replaced SqlIcon
+  BarChartIcon,      // Replaced PowerBIIcon
+  FileTextIcon,      // Replaced ExcelIcon
+  ClipboardIcon,     // Replaced JamoviIcon
+  SearchIcon,        // Replaced DataAnalysisIcon
+  PieChartIcon,      // Replaced StatisticsIcon
+  BarChart2Icon,     // Replaced ChartLineIcon with BarChart2Icon
   CheckCircleIcon    // Replaced ProblemSolvingIcon
 } from 'lucide-react';
 
@@ -51,7 +51,7 @@ const skills: Skill[] = [
   },
   {
     name: 'Data Visualization',
-    Icon: ChartLineIcon,
+    Icon: BarChart2Icon, // Changed from ChartLineIcon to BarChart2Icon
     description: `Data Visualization is the graphical representation of information and data. This skill enables data analysts to create meaningful visual displays that convey complex data insights clearly and effectively. By utilizing various visualization tools and techniques, analysts can transform data into intuitive visuals, facilitating better understanding and decision-making.`
   },
   {
