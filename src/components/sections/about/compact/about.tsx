@@ -28,9 +28,9 @@ function About() {
                     View Resume <ArrowUpRightIcon className="ml-2 size-5" />
                   </a>
                 </Button>
-                <Button asChild>
+                {/* <Button asChild>
                   <Link href="/about">Learn More</Link>
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>
