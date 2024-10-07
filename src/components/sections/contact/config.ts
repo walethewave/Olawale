@@ -3,7 +3,7 @@ import {
   SiGithub,
   SiLinkedin,
   SiX,
-  SiWhatsApp
+  SiWhatsapp
 } from '@icons-pack/react-simple-icons';
 
 const contact: Contact = {
@@ -17,7 +17,7 @@ const contact: Contact = {
     {
       name: 'Whatsapp',
       href: 'https://wa.me/+2347037374036',
-      Icon: SiWhatsApp
+      Icon: SiWhatsapp
     },
     {
       name: 'X',
