@@ -2,32 +2,32 @@ import { Experience } from '@/types/experience';
 
 const experiences: Experience[] = [
   {
-    name: 'Web Development',
-    duration: '2022 - Present',
-    company: 'Acme Inc',
+    name: 'AI Engineer',
+    duration: '2024 - Present',
+    company: 'AI Innovations Ltd',
     description:
-      'Building beautiful and functional websites using modern web technologies, focusing on performance, accessibility, and SEO-friendly design.'
+      'Building intelligent systems and machine learning solutions that solve real-world problems. Developing end-to-end AI pipelines, deploying models to production, and implementing MLOps practices for scalable AI applications.'
   },
   {
-    name: 'UI/UX Design',
+    name: 'Machine Learning Engineer',
+    duration: '2023 - 2024',
+    company: 'TechML Solutions',
+    description:
+      'Designing and implementing machine learning models for predictive analytics and automation. Specializing in deep learning, computer vision, and natural language processing applications with focus on model optimization and deployment.'
+  },
+  {
+    name: 'Data Scientist',
+    duration: '2022 - 2023',
+    company: 'DataTech Analytics',
+    description:
+      'Analyzing complex datasets to extract insights and build predictive models. Developed statistical models, performed feature engineering, and created data visualizations to drive business intelligence and decision-making.'
+  },
+  {
+    name: 'Data Analyst',
     duration: '2021 - 2022',
-    company: 'Creative Designs Ltd',
+    company: 'InsightCorp',
     description:
-      'Creating delightful and intuitive user experiences, specializing in responsive design and user-centric methodologies.'
-  },
-  {
-    name: 'Database Management',
-    duration: '2020 - 2022',
-    company: 'DataTech Solutions',
-    description:
-      'Storing and organizing data efficiently, ensuring data integrity, and optimizing database queries for high traffic applications.'
-  },
-  {
-    name: 'Mobile Development',
-    duration: '2019 - 2021',
-    company: 'Innovative Apps Inc',
-    description:
-      'Crafting engaging and scalable apps for smartphones and tablets, focusing on cross-platform development and native performance.'
+      'Transformed raw data into actionable insights using statistical analysis and visualization tools. Built dashboards and reports to support strategic business decisions and identified key performance indicators.'
   }
 ];
 

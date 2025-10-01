@@ -16,11 +16,12 @@ function About() {
             </h2>
             <div className="space-y-4">
               <p className="max-w-[700px] text-gray-500 dark:text-gray-400 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                I am a passionate and strategic Data Analyst with a strong foundation
-                in mathematics,which empowers me to approach data with analytical rigor. 
-                I excel at transforming complex datasets into actionable insights, using
-                mathematical models to uncover patterns,predict trends, and drive data-driven decisions.
-                
+                I'm an AI Engineer who transforms complex challenges into intelligent solutions. With expertise in 
+                machine learning, deep learning, and natural language processing, I build production-ready AI systems 
+                that solve real-world problems. From conversational AI platforms to advanced NLP pipelines, I specialize 
+                in creating scalable, explainable AI applications that drive meaningful impact. My journey from data 
+                analysis to AI engineering has equipped me with a unique perspective on turning data insights into 
+                intelligent automated systems.
               </p>
               <div className="flex gap-2">
                 <Button asChild variant={'outline'}>

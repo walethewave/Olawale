@@ -3,30 +3,35 @@
 </p>
 
 <h1 align="center">
-  shadcn-portfolio
+  Afolabi Olawale - AI Engineer Portfolio
 </h1>
 
 <p align="center">
   <a aria-label="Framework" href="https://nextjs.org">
     <img alt="" src="https://img.shields.io/badge/Next.js-000000.svg?style=for-the-badge&logo=Next.js&labelColor=000">
   </a>
-  <img alt="" src="https://img.shields.io/github/languages/top/techwithanirudh/shadcn-portfolio?style=for-the-badge&labelColor=000">
-  <a aria-label="License" href="https://github.com/techwithanirudh/shadcn-portfolio/blob/main/LICENSE">
-    <img alt="" src="https://img.shields.io/github/license/techwithanirudh/shadcn-portfolio?style=for-the-badge&labelColor=000">
-  </a>
+  <img alt="" src="https://img.shields.io/badge/AI-Engineer-blue.svg?style=for-the-badge&labelColor=000">
+  <img alt="" src="https://img.shields.io/badge/Python-ML-green.svg?style=for-the-badge&labelColor=000">
 </p>
 
 ## 📋 Table of Contents
 
-1. 🤖 [Introduction](#introduction)
+1. 🤖 [About](#about)
 2. 🚀 [Tech Stack](#tech-stack)
-3. ✨ [Features](#features)
-4. 📚 [Getting Started](#getting-started)
-5. ❤️ [Credits](#credits)
+3. 🧠 [AI Projects](#ai-projects)
+4. ✨ [Features](#features)
+5. 📚 [Getting Started](#getting-started)
 
-## <a name="introduction">🤖 Introduction</a>
+## <a name="about">🤖 About</a>
 
-This is a portfolio template built using Next.JS, Framer Motion and Shadcn/UI.
+Welcome to my AI Engineering portfolio! I'm Afolabi Olawale, an AI Engineer passionate about building intelligent systems that solve real-world problems. This portfolio showcases my journey from data analysis to AI engineering, featuring projects in machine learning, natural language processing, and conversational AI.
+
+## <a name="ai-projects">🧠 Featured AI Projects</a>
+
+- **🎮 AI-Powered Sentence Completion**: NLP system for video game narrative generation
+- **💭 Sentiment Lab**: Production-ready sentiment analysis pipeline
+- **🌟 ConfidenceAI**: AI-powered personal coaching platform with live deployment
+- **🏦 AI Banking Insights**: Machine learning system for marketing campaign optimization
 
 ## <a name="tech-stack">🚀 Tech Stack</a>
 
