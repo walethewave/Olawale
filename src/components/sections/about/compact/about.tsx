@@ -16,7 +16,7 @@ function About() {
             </h2>
             <div className="space-y-4">
               <p className="max-w-[700px] text-gray-500 dark:text-gray-400 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                I'm an AI Engineer who transforms complex challenges into intelligent solutions. With expertise in 
+                I&apos;m an AI Engineer who transforms complex challenges into intelligent solutions. With expertise in 
                 machine learning, deep learning, and natural language processing, I build production-ready AI systems 
                 that solve real-world problems. From conversational AI platforms to advanced NLP pipelines, I specialize 
                 in creating scalable, explainable AI applications that drive meaningful impact. My journey from data 
