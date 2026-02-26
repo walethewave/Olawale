@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 import MotionWrap from '@/components/motion-wrap';
 import ProjectCard from './project-card';
@@ -10,7 +10,8 @@ import {
   CarouselContent,
   CarouselItem,
   CarouselNext,
-  CarouselPrevious
+  CarouselPrevious,
+  type CarouselApi
 } from '@/components/ui/carousel';
 
 import Reveal from '@/components/reveal';
@@ -24,6 +25,30 @@ function Projects() {
       new Date(b.data.date ?? b.file.name).getTime() -
       new Date(a.data.date ?? a.file.name).getTime()
   );
+
+  const [api, setApi] = React.useState<CarouselApi>();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const restartAutoScroll = useCallback(() => {
+    if (!api) return;
+    const autoScroll = api.plugins()?.autoScroll;
+    if (autoScroll && !autoScroll.isPlaying()) {
+      autoScroll.play();
+    }
+  }, [api]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleMouseLeave = () => {
+      // Small delay so the restart feels natural
+      setTimeout(restartAutoScroll, 800);
+    };
+
+    el.addEventListener('mouseleave', handleMouseLeave);
+    return () => el.removeEventListener('mouseleave', handleMouseLeave);
+  }, [restartAutoScroll]);
 
   return (
     <MotionWrap className="w-full py-24 lg:py-32" id="projects">
@@ -48,8 +73,12 @@ function Projects() {
             </p>
           </div>
 
-          <div className="relative flex items-center justify-center overflow-hidden">
+          <div
+            ref={containerRef}
+            className="relative flex items-center justify-center overflow-hidden lg:px-12"
+          >
             <Carousel
+              setApi={setApi}
               opts={{
                 align: 'start',
                 dragFree: true,
@@ -58,9 +87,10 @@ function Projects() {
               plugins={[
                 AutoScroll({
                   speed: 0.8,
-                  stopOnInteraction: false,
+                  stopOnInteraction: true,
                   stopOnMouseEnter: true,
-                  stopOnFocusIn: true
+                  stopOnFocusIn: true,
+                  startDelay: 0
                 })
               ]}
               className="w-full"
@@ -84,10 +114,8 @@ function Projects() {
                 ))}
               </CarouselContent>
 
-              <div className="mt-6 flex items-center justify-center gap-4">
-                <CarouselPrevious className="static translate-y-0" />
-                <CarouselNext className="static translate-y-0" />
-              </div>
+              <CarouselPrevious />
+              <CarouselNext />
             </Carousel>
           </div>
         </div>
