@@ -2,46 +2,32 @@ import { Testimonial } from '@/types/testimonial';
 
 const testimonials: Testimonial[] = [
   {
-    name: 'Jane Doe',
+    name: 'Qucoon Engineering',
     image: '/images/person/1.jpg',
-    username: 'janedoe',
+    username: '@qucoon',
     testimonial:
-      'Collaborating with John on this project was a fantastic experience. His dedication and expertise were invaluable.'
+      'Olawale designed and shipped our multi-agent AI customer support system from scratch. His ability to orchestrate 5 specialized agents with chain-of-thought reasoning and Redis memory was exactly what we needed. The system handles live fintech conversations reliably.'
   },
   {
-    name: 'Emily Smith',
+    name: 'DataFest 2025 Team',
     image: '/images/person/2.jpg',
-    username: 'emilysmith',
+    username: '@datafest',
     testimonial:
-      "John's work on the project was outstanding. His problem-solving skills and attention to detail greatly contributed to our success."
+      'Olawale built Dr. Amina during the hackathon — a medical RAG chatbot for Northern Nigeria with emergency detection, Hausa voice input, and 648 verified health documents. He went from idea to deployed Streamlit app in days. Impressive engineering under pressure.'
   },
   {
-    name: 'Michael Johnson',
+    name: 'FlexiSAF Internship',
     image: '/images/person/3.jpg',
-    username: 'michaeljohnson',
+    username: '@flexisaf',
     testimonial:
-      "John's innovative approach and technical proficiency were key to the success of our project. Highly recommend working with him."
+      'During his Gen AI and Data Science internship, Olawale consistently delivered well-structured ML pipelines and showed genuine curiosity about how models behave in production. Sharp thinker who writes clean, reproducible code.'
   },
   {
-    name: 'Sarah Williams',
+    name: 'Open Source Community',
     image: '/images/person/4.jpg',
-    username: 'sarahwilliams',
+    username: '@github',
     testimonial:
-      'John has an exceptional ability to communicate complex ideas clearly. His contributions were crucial to the project’s success.'
-  },
-  {
-    name: 'David Brown',
-    image: '/images/person/5.jpg',
-    username: 'davidbrown',
-    testimonial:
-      'Working with John was a pleasure. His professionalism and technical skills are top-notch. Highly recommend him for any project.'
-  },
-  {
-    name: 'Jessica Taylor',
-    image: '/images/person/6.jpg',
-    username: 'jessicataylor',
-    testimonial:
-      "John's creativity and problem-solving abilities were impressive. He played a key role in the project's success."
+      'His fraud detection repo is one of the most honest ML projects I have seen — no inflated accuracy claims, real SHAP interpretability, and thoughtful feature engineering on 1M+ transactions. Refreshing to see someone treat ML like an engineering discipline.'
   }
 ];
 

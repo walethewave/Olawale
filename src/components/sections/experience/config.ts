@@ -3,31 +3,24 @@ import { Experience } from '@/types/experience';
 const experiences: Experience[] = [
   {
     name: 'AI Engineer',
-    duration: '2024 - Present',
-    company: 'AI Innovations Ltd',
+    duration: 'March 2025 - Present',
+    company: 'Qucoon',
     description:
-      'Building intelligent systems and machine learning solutions that solve real-world problems. Developing end-to-end AI pipelines, deploying models to production, and implementing MLOps practices for scalable AI applications.'
+      'Architected a 5-agent AI customer support system for fintech — Intent Classifier, Conversation Bot, Product Bot, Support Bot, and Escalation Agent. Built multi-step chain-of-thought workflows with Redis memory, concurrent async execution, and LLM response validation with automatic fallbacks. Also shipped a document Q&A system using RAG with confidence scoring and FastAPI REST APIs.'
   },
   {
-    name: 'Machine Learning Engineer',
-    duration: '2023 - 2024',
-    company: 'TechML Solutions',
+    name: 'AI Engineer (Projects)',
+    duration: '2024 - 2025',
+    company: 'Independent',
     description:
-      'Designing and implementing machine learning models for predictive analytics and automation. Specializing in deep learning, computer vision, and natural language processing applications with focus on model optimization and deployment.'
+      'Built and deployed production AI systems including Dr. Amina (medical RAG chatbot for Northern Nigeria with 648 health documents), a fraud detection pipeline on 1M+ transactions, and ConfidenceAI — a live coaching platform powered by Google Gemini with explainable scoring.'
   },
   {
-    name: 'Data Scientist',
-    duration: '2022 - 2023',
-    company: 'DataTech Analytics',
+    name: 'B.Sc. Mathematics & Education',
+    duration: 'Aug 2021 - Jan 2025',
+    company: 'Lagos State University',
     description:
-      'Analyzing complex datasets to extract insights and build predictive models. Developed statistical models, performed feature engineering, and created data visualizations to drive business intelligence and decision-making.'
-  },
-  {
-    name: 'Data Analyst',
-    duration: '2021 - 2022',
-    company: 'InsightCorp',
-    description:
-      'Transformed raw data into actionable insights using statistical analysis and visualization tools. Built dashboards and reports to support strategic business decisions and identified key performance indicators.'
+      'Studied mathematics with a focus on statistical modeling, linear algebra, and computational methods — the foundation that makes my ML work tick. Applied mathematical thinking to real-world data problems throughout my studies.'
   }
 ];
 

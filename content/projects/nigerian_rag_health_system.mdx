@@ -1,0 +1,67 @@
+---
+title: "Dr. Amina — AI Healthcare for Northern Nigeria"
+description: Built a medical RAG chatbot that serves Northern Nigeria's underserved communities. Powered by Google Gemini and Pinecone (648 verified health documents), it detects emergencies with 80% confidence, supports Hausa voice input, and persists conversations via Supabase. Deployed live on Streamlit for the DataFest Africa 2025 Hackathon.
+date: 2026-02-01
+website: https://datafest-2025-nmdfdv5hm57ejulupy3g6p.streamlit.app/
+github: https://github.com/walethewave/Nigerian-RAG-Health-System
+tags:
+  - label: RAG
+  - label: Google Gemini
+  - label: Pinecone
+  - label: Healthcare AI
+  - label: Streamlit
+  - label: Python
+  - label: Vector Database
+  - label: Deployed App
+---
+
+# Dr. Amina — AI Healthcare for Northern Nigeria
+
+Northern Nigeria faces a critical healthcare information gap: limited access to doctors, low health literacy, and language barriers that leave millions without reliable medical guidance. Dr. Amina was built to close that gap.
+
+## What It Does
+
+Dr. Amina is a multilingual AI healthcare assistant that answers medical questions using **retrieval-augmented generation (RAG)** grounded in 648 verified health documents — not hallucinated medical advice. It combines:
+
+- **Google Gemini AI** for natural language understanding and response generation
+- **Pinecone vector database** for semantic search across the medical knowledge base
+- **Emergency detection** using an LLM-based classifier with an 80% confidence threshold — directs users to the nearest hospital when it matters
+- **Hausa voice input** via speech-to-text, because health literacy starts with language accessibility
+- **Supabase chat persistence** so conversations carry context across sessions
+
+## Architecture
+
+```
+User Query → Gemini Embedding → Pinecone Retrieval (top-k documents)
+    → Context Assembly → Gemini Generation → Response
+    → Emergency Classifier → Alert (if confidence ≥ 0.8)
+```
+
+The system uses a two-stage pipeline: first retrieve relevant medical documents via vector similarity, then generate a grounded response with the retrieved context injected into the prompt. Emergency detection runs in parallel on every query.
+
+## Key Engineering Decisions
+
+1. **No fine-tuning** — RAG was chosen over fine-tuning because medical accuracy requires traceable sources. Every response can be traced back to specific documents in the knowledge base.
+2. **Confidence-gated emergency detection** — rather than keyword matching (which misses "my chest feels heavy"), the system uses Gemini to classify emergency severity and only triggers alerts above 80% confidence.
+3. **Hausa-first design** — the voice input pipeline supports Hausa natively, not as an afterthought translation layer.
+4. **Supabase for persistence** — lightweight, real-time database that handles chat history without the overhead of a full backend.
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| LLM | Google Gemini AI |
+| Vector DB | Pinecone |
+| Backend | Python, Streamlit |
+| Database | Supabase |
+| Speech | Hausa voice-to-text |
+| Deployment | Streamlit Cloud |
+
+## Results
+
+- **648 health documents** indexed and retrievable
+- **Live deployment** serving real users via Streamlit
+- **Sub-3 second** response times for most queries
+- Built and deployed during the **DataFest Africa 2025 Hackathon**
+
+[Try Dr. Amina live →](https://datafest-2025-nmdfdv5hm57ejulupy3g6p.streamlit.app/)
