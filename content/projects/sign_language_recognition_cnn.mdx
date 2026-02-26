@@ -1,0 +1,45 @@
+---
+title: "Sign Language Hand Gesture Recognition with CNN"
+description: Trained a convolutional neural network to classify 25 American Sign Language hand gestures at 99.75% accuracy. Tackled overfitting head-on with dropout layers, data augmentation, and early stopping — then built a Flask web app so anyone can test it with their own images.
+date: 2025-01-15
+website: https://github.com/walethewave/Sign-Language-Hand-Gesture-Recognition-Using--CNN
+github: https://github.com/walethewave/Sign-Language-Hand-Gesture-Recognition-Using--CNN
+tags:
+  - label: Deep Learning
+  - label: Computer Vision
+  - label: CNN
+  - label: TensorFlow
+  - label: Flask
+  - label: Image Classification
+  - label: Accessibility
+---
+
+# Sign Language Hand Gesture Recognition with CNN
+
+Built a CNN that recognizes American Sign Language hand gestures from the Sign Language MNIST dataset — 27,455 training images across 25 classes (A-Z minus J and Z). The fun part wasn't getting a model to work. It was getting one that doesn't overfit and actually generalizes.
+
+## The Build
+
+### Dataset
+28x28 grayscale images of hand gestures. Ran thorough EDA — class distribution checks, pixel intensity analysis, correlation heatmaps — before touching any model code. Normalized pixels to [0,1] and split 80/20 for training/validation.
+
+### CNN Architecture
+Two convolutional layers (32 and 64 filters) with ReLU activation, max pooling after each, flattened into a 128-unit dense layer, and a 25-class softmax output. Simple and effective.
+
+### Fighting Overfitting
+The initial model overfit fast. Fixed it three ways:
+1. **Dropout layers** — forced the network to not rely on any single neuron
+2. **Data augmentation** — rotation, width/height shifts, zoom via ImageDataGenerator
+3. **Early stopping** — monitors val_loss, stops after 3 epochs without improvement, restores best weights
+
+### Results
+- **Test accuracy: 99.75%**
+- **Test loss: 0.0134**
+- The augmentation + dropout combo was the difference between a model that memorizes and one that understands
+
+## Deployment
+Built a Flask web app with HTML templates so users can upload images and get real-time predictions. Saved trained models as `.h5` files (both base and augmented versions). Attempted Vercel deployment for broader access.
+
+## Why I Built This
+
+Sign language recognition has real potential for accessibility — bridging communication gaps for deaf and hard-of-hearing communities. This was my way of applying deep learning to something that actually matters beyond accuracy benchmarks.

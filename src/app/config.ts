@@ -9,7 +9,7 @@ const metadata: Metadata = {
   site: {
     title: 'Afolabi Olawale',
     description: 'Portfolio of AI Engineer and Machine Learning Specialist Afolabi Olawale.',
-    url: 'https://www.example.com',
+    url: 'https://olawale-ten.vercel.app',
     keywords: [
       'artificial intelligence',
       'machine learning',

@@ -1,0 +1,49 @@
+---
+title: "Digital Lending E-Sign Prediction System"
+description: Built an end-to-end ML system that predicts whether loan applicants will complete electronic signing — a real bottleneck in digital lending. Engineered features like income-to-loan ratios and composite risk scores, trained a deployable logistic regression model, and exported it as a .pkl file ready for production integration.
+date: 2025-07-01
+website: https://github.com/walethewave/Digital-Lending-E-Sign-Prediction-System
+github: https://github.com/walethewave/Digital-Lending-E-Sign-Prediction-System
+tags:
+  - label: Fintech
+  - label: Predictive Modeling
+  - label: Scikit-learn
+  - label: Feature Engineering
+  - label: Python
+  - label: Model Deployment
+  - label: Logistic Regression
+---
+
+# Digital Lending E-Sign Prediction System
+
+In digital lending, the gap between "approved" and "signed" costs real money. About 46% of applicants in this dataset never completed their e-signature — that's a massive drop-off. This project predicts who will actually sign, so lenders can intervene before they lose the customer.
+
+## The Problem
+
+Not everyone who starts a loan application finishes it. Banks spend resources acquiring and processing applicants who never convert. If you can predict who's likely to drop off, you can send targeted nudges, adjust the flow, or prioritize follow-ups. That's the business case.
+
+## What I Built
+
+### Data Pipeline
+Cleaned messy applicant data — missing values, duplicate IDs, inconsistent formats. The real work was making the raw data model-ready without leaking information.
+
+### Feature Engineering
+This is where the value lives:
+- **`total_employment_years`** — merged separate year/month fields into a single meaningful metric
+- **`income_to_loan_ratio`** — how stretched is this applicant financially?
+- **`composite_risk_score`** — combined multiple risk indicators into one weighted signal
+- Encoded categorical variables like pay schedule for proper model consumption
+
+### Model & Results
+Trained logistic regression with a focus on interpretability — when a lender asks "why did you flag this person?", you need an answer that makes sense.
+
+- **E-signing rate:** ~54% of applicants completed it
+- **Key predictors:** Age, income, risk scores, home ownership, employment duration
+- **Exported model:** Saved as `.pkl` — plug it into a Flask API or any scoring pipeline
+
+### Visualization
+Built comprehensive visualizations showing the relationship between features and e-signing behavior. Patterns like income brackets, age groups, and risk profiles tell a clear story about who converts.
+
+## Why This Matters
+
+This is the kind of ML work that directly impacts revenue. Every percentage point improvement in predicting e-sign completion means fewer wasted outreach dollars and faster loan processing. The model is intentionally simple and interpretable — because in financial services, a model nobody trusts is a model nobody uses.

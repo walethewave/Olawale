@@ -1,0 +1,53 @@
+---
+title: "Fighting Fraud with Machine Learning"
+description: Built a production-grade fraud detection system on 1M+ interbank transactions with a 0.3% fraud rate — no synthetic balancing tricks. Engineered 38 behavioral features, trained interpretable models (Logistic Regression → Random Forest), and used SHAP to make every flagged transaction explainable to analysts and regulators.
+date: 2025-12-01
+website: https://github.com/walethewave/Fraud-risk-research-ML
+github: https://github.com/walethewave/Fraud-risk-research-ML
+tags:
+  - label: Fraud Detection
+  - label: Random Forest
+  - label: SHAP
+  - label: Feature Engineering
+  - label: Python
+  - label: Scikit-learn
+  - label: Imbalanced Learning
+---
+
+# Fighting Fraud with Machine Learning
+
+This isn't a Kaggle notebook with synthetic oversampling. It's the messy, iterative work of building fraud detection that actually holds up when fraudsters adapt.
+
+## The Problem
+
+1 million transactions. 3,000 fraudulent. That's a 0.3% fraud rate across multiple Nigerian banks — the kind of brutal class imbalance you get in production. Miss fraud and it costs real money. Flag too many false positives and you destroy user trust.
+
+## What I Actually Built
+
+### Feature Engineering (Where 80% of the Work Happened)
+Started with 62 features. Aggressively pruned to 17 that actually matter. Every feature answers one question: **"How weird is this transaction for this user?"**
+
+- Temporal encodings — fraudsters are creatures of habit (midnight to 5 AM spikes confirmed)
+- Velocity signals — transaction count and amount over 24h/7d/lifetime windows
+- Behavioral diversity — channel switching and location hopping patterns
+- Risk composites — weighted combinations encoding multi-dimensional suspicion
+
+### Models & Honest Results
+
+**Logistic Regression (Baseline):** AUC-ROC 0.70 — caught 54% of fraud but with a 99% false positive rate. Completely unusable.
+
+**Random Forest (Production Model):** AUC-ROC 0.82 — catches nearly 2 out of 3 fraud cases. Got there through careful depth limiting, balanced class weights, and letting the trees find the non-linear boundaries that logistic regression missed.
+
+### SHAP Interpretability
+"The model says so" doesn't fly with fraud analysts or regulators. Built full SHAP analysis — summary plots, dependence plots, force plots, waterfall breakdowns. Transaction amount drives 52% of importance, followed by the composite risk score I engineered at 18%.
+
+## Key Findings That Held Up
+
+- Time-of-day is real — fraud risk spikes 2-3x between midnight and 5 AM
+- Mobile is the wild west — faster fraud velocity, higher amounts, weaker controls
+- The best fraud signal: "doing something you've never done before, quickly"
+- Location alone is weak. Location + velocity + unusual channel = strong signal
+
+## Why This Matters
+
+Fraud detection is adversarial. Fraudsters test your boundaries, find blind spots, and adapt. This project treats it that way — no magic accuracy claims, honest about trade-offs, built for the people who actually need to trust and use the model.
