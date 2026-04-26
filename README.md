@@ -26,6 +26,8 @@
 
 Welcome to my AI Engineering portfolio! I'm Afolabi Olawale, an AI Engineer passionate about building intelligent systems that solve real-world problems. This portfolio showcases my journey from data analysis to AI engineering, featuring projects in machine learning, natural language processing, and conversational AI.
 
+Recent updates include a production work section for Qucoon, a multilingual AI roadmap, and refreshed project highlights.
+
 ## <a name="ai-projects">🧠 Featured AI Projects</a>
 
 - **🎮 AI-Powered Sentence Completion**: NLP system for video game narrative generation
