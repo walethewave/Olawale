@@ -25,6 +25,19 @@ interface ProjectCardProps extends Project {
   className?: string;
 }
 
+const projectMetrics: Record<string, string> = {
+  'Fighting Fraud with Machine Learning':
+    '1M+ transactions · 0.3% fraud rate · 38 engineered features',
+  'Dr. Amina — AI Healthcare for Northern Nigeria':
+    '648 health documents · 80% confidence threshold · Hausa voice input',
+  'Sign Language Hand Gesture Recognition with CNN':
+    '99.75% accuracy · 25 ASL gestures',
+  'ConfidenceAI: AI-Powered Personal Confidence Coaching Platform':
+    'Live deployment · Real user sessions',
+  'Digital Lending E-Sign Prediction System':
+    'Production-ready .pkl export · Real fintech workflow'
+};
+
 function ProjectCard({
   title,
   description,
@@ -33,6 +46,8 @@ function ProjectCard({
   tags,
   className
 }: ProjectCardProps) {
+  const metrics = projectMetrics[title];
+
   return (
     <Card
       className={cn(
@@ -53,6 +68,11 @@ function ProjectCard({
           <h3 className="text-xl font-bold">
             <TextReveal>{title}</TextReveal>
           </h3>
+          {metrics && (
+            <p className="text-xs font-mono leading-5 text-muted-foreground/80">
+              <TextReveal>{metrics}</TextReveal>
+            </p>
+          )}
           <p className="text-sm text-gray-500 dark:text-gray-400">
             <TextReveal>{description || ''}</TextReveal>
           </p>

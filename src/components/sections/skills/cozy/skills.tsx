@@ -1,11 +1,32 @@
-import React from 'react';
-import SkillCard from './skill-card';
-
 import Reveal from '@/components/reveal';
-
-import { skills } from '@/components/sections/skills/config';
 import MotionWrap from '@/components/motion-wrap';
-import { Accordion } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+
+const skillGroups = [
+  {
+    title: 'Languages & Backend',
+    items: ['Python', 'FastAPI', 'PostgreSQL', 'Docker', 'Redis']
+  },
+  {
+    title: 'AI / ML / NLP',
+    items: [
+      'PyTorch',
+      'TensorFlow',
+      'HuggingFace',
+      'scikit-learn',
+      'LangChain',
+      'OpenAI'
+    ]
+  },
+  {
+    title: 'Cloud & Infrastructure',
+    items: ['AWS', 'Pinecone', 'Supabase', 'Streamlit']
+  },
+  {
+    title: 'Data & Visualization',
+    items: ['Pandas', 'NumPy', 'Power BI', 'Plotly']
+  }
+] as const;
 
 function Skills() {
   return (
@@ -24,23 +45,29 @@ function Skills() {
               </h2>
             </Reveal>
           </div>
-          <p className="mt-4 hidden text-gray-500 dark:text-gray-400 lg:mt-0 lg:block lg:w-[35%]">
-            Here are some of my skills where I&apos;ve turned knowledge into
-            expertise, making things happen.
-          </p>
         </div>
-        <div className="mt-6">
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {skills.map((skill, index) => (
-              <SkillCard
-                key={`skill_${index}`}
-                index={index + 1}
-                name={skill.name}
-                description={skill.description}
-                Icon={skill.Icon}
-              />
-            ))}
-          </Accordion>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {skillGroups.map((group) => (
+            <div
+              key={group.title}
+              className="rounded-2xl border border-border bg-muted/40 p-4"
+            >
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {group.title}
+              </h3>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {group.items.map((item) => (
+                  <Badge
+                    key={item}
+                    variant="outline"
+                    className="rounded-full border-border bg-background/70 px-3 py-1 text-[0.8rem] font-medium text-foreground shadow-sm"
+                  >
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </MotionWrap>

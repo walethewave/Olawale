@@ -1,23 +1,10 @@
-'use client';
-
-import React, { useCallback, useEffect, useRef } from 'react';
+import React from 'react';
 
 import MotionWrap from '@/components/motion-wrap';
 import ProjectCard from './project-card';
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi
-} from '@/components/ui/carousel';
-
 import Reveal from '@/components/reveal';
 import { project } from '@/app/source';
-
-import AutoScroll from 'embla-carousel-auto-scroll';
 
 function Projects() {
   const projects = [...project.getPages()].sort(
@@ -26,33 +13,9 @@ function Projects() {
       new Date(a.data.date ?? a.file.name).getTime()
   );
 
-  const [api, setApi] = React.useState<CarouselApi>();
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const restartAutoScroll = useCallback(() => {
-    if (!api) return;
-    const autoScroll = api.plugins()?.autoScroll;
-    if (autoScroll && !autoScroll.isPlaying()) {
-      autoScroll.play();
-    }
-  }, [api]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleMouseLeave = () => {
-      // Small delay so the restart feels natural
-      setTimeout(restartAutoScroll, 800);
-    };
-
-    el.addEventListener('mouseleave', handleMouseLeave);
-    return () => el.removeEventListener('mouseleave', handleMouseLeave);
-  }, [restartAutoScroll]);
-
   return (
     <MotionWrap className="w-full py-24 lg:py-32" id="projects">
-      <div className="px-4 md:px-6">
+      <div className="space-y-4 px-4 md:px-6 lg:space-y-10">
         <div className="grid gap-10">
           <div className="flex w-full flex-col items-center justify-center text-center lg:flex-row lg:justify-between lg:text-left">
             <div className="flex flex-col items-center lg:items-start">
@@ -73,50 +36,17 @@ function Projects() {
             </p>
           </div>
 
-          <div
-            ref={containerRef}
-            className="relative flex items-center justify-center overflow-hidden lg:px-12"
-          >
-            <Carousel
-              setApi={setApi}
-              opts={{
-                align: 'start',
-                dragFree: true,
-                loop: true
-              }}
-              plugins={[
-                AutoScroll({
-                  speed: 0.8,
-                  stopOnInteraction: true,
-                  stopOnMouseEnter: true,
-                  stopOnFocusIn: true,
-                  startDelay: 0
-                })
-              ]}
-              className="w-full"
-            >
-              <CarouselContent className="-ml-4">
-                {projects.map((project, index) => (
-                  <CarouselItem
-                    key={`project_${index}`}
-                    className="basis-[85%] pl-4 sm:basis-[70%] md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-                  >
-                    <div className="h-full">
-                      <ProjectCard
-                        title={project.data.title}
-                        href={project.url}
-                        description={project.data.description}
-                        tags={project.data.tags}
-                        thumbnail={`/images/projects/${project.slugs[0]}/cover.jpg`}
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
+          <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
+            {projects.map((project, index) => (
+              <ProjectCard
+                title={project.data.title}
+                href={project.url}
+                description={project.data.description}
+                key={`project_${index}`}
+                tags={project.data.tags}
+                thumbnail={`/images/projects/${project.slugs[0]}/cover.jpg`}
+              />
+            ))}
           </div>
         </div>
       </div>

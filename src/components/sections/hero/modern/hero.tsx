@@ -11,11 +11,11 @@ function Hero() {
     <section className="relative w-full overflow-hidden bg-background/[0.96]">
       <div className="flex min-h-[50dvh] w-full flex-col items-center justify-center px-4 py-16 md:px-6 md:py-24">
         <h1 className="text-center text-4xl font-light leading-tight sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
-          <TextReveal>An AI Engineer</TextReveal>
+          <TextReveal>AI Engineer building intelligent systems for African markets —</TextReveal>
           <br />
           <span className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-            <Reveal>who builds</Reveal>
-            <Reveal>Intelligent Systems</Reveal>
+            <Reveal>from 5-agent fintech platforms</Reveal>
+            <Reveal>to multilingual NLP for Nigerian languages.</Reveal>
           </span>
         </h1>
       </div>

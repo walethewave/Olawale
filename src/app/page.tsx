@@ -4,7 +4,9 @@ import {
   About,
   Skills,
   Experience,
+  QucoonWork,
   Projects,
+  NextBuild,
   Contact,
   Footer
 } from '@/components/sections';
@@ -22,7 +24,9 @@ export default function Home() {
           <About />
           <Skills />
           <Experience />
+          <QucoonWork />
           <Projects />
+          <NextBuild />
           <Contact />
           <Footer />
         </main>

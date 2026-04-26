@@ -2,8 +2,7 @@ import { Contact } from '@/types/contact';
 import {
   SiGithub,
   SiLinkedin,
-  SiX,
-  SiWhatsapp
+  SiX
 } from '@icons-pack/react-simple-icons';
 
 const contact: Contact = {
@@ -13,11 +12,6 @@ const contact: Contact = {
       name: 'Github',
       href: 'https://github.com/walethewave',
       Icon: SiGithub
-    },
-    {
-      name: 'Whatsapp',
-      href: 'https://wa.me/+2347037374036',
-      Icon: SiWhatsapp
     },
     {
       name: 'X',
