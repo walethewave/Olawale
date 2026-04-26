@@ -7,6 +7,23 @@ import React from 'react';
 import { createMetadata } from '@/lib/metadata';
 import ProjectCard from '@/app/projects/_components/project-card';
 
+const confidenceAIProject = {
+  title: 'ConfidenceAI — Live Coaching Platform',
+  description:
+    'Real-time AI confidence coaching with explainable scoring. Not generic motivational text — structured psychological frameworks delivered through Google Gemini with session memory. Pydantic validation ensures consistent, structured output every session.',
+  href: '/projects/confidence_ai_coaching',
+  website: 'https://9punzdhswetzx92taubijy.streamlit.app/',
+  github: 'https://github.com/walethewave/AI-Powered-Confidence-Coaching-App',
+  tags: [
+    { label: 'Google Gemini' },
+    { label: 'Streamlit' },
+    { label: 'Pydantic' },
+    { label: 'Python' },
+    { label: 'Live Deployment' }
+  ],
+  thumbnail: '/images/projects/confidence_ai_coaching/cover.jpg'
+};
+
 export const metadata = createMetadata({
   title: 'Projects',
   description: 'Here are some projects I have worked on.'
@@ -18,6 +35,34 @@ export default function ProjectsPage(): React.ReactElement {
       new Date(b.data.date ?? b.file.name).getTime() -
       new Date(a.data.date ?? a.file.name).getTime()
   );
+
+  const displayProjects = [
+    ...projects
+      .filter((project) => project.data.title !== confidenceAIProject.title)
+      .slice(0, 2)
+      .map((project) => ({
+        title: project.data.title,
+        description: project.data.description,
+        href: project.url,
+        website: project.data.website,
+        github: project.data.github,
+        tags: project.data.tags,
+        thumbnail: `/images/projects/${project.slugs[0]}/cover.jpg`
+      })),
+    confidenceAIProject,
+    ...projects
+      .filter((project) => project.data.title !== confidenceAIProject.title)
+      .slice(2)
+      .map((project) => ({
+        title: project.data.title,
+        description: project.data.description,
+        href: project.url,
+        website: project.data.website,
+        github: project.data.github,
+        tags: project.data.tags,
+        thumbnail: `/images/projects/${project.slugs[0]}/cover.jpg`
+      }))
+  ];
 
   return (
     <main className="my-14 flex-1">
@@ -43,16 +88,16 @@ export default function ProjectsPage(): React.ReactElement {
       </section>
       {/*className="container max-sm:px-0 md:py-12"*/}
       <section className="grid w-full grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3">
-        {projects.map((project, index) => (
+        {displayProjects.map((project, index) => (
           <ProjectCard
-            title={project.data.title}
-            href={project.url}
-            description={project.data.description}
-            website={project.data.website}
-            github={project.data.github}
+            title={project.title}
+            href={project.href}
+            description={project.description}
+            website={project.website}
+            github={project.github}
             key={`project_${index}`}
-            tags={project.data.tags}
-            thumbnail={`/images/projects/${project.slugs[0]}/cover.jpg`}
+            tags={project.tags}
+            thumbnail={project.thumbnail}
           />
         ))}
       </section>
