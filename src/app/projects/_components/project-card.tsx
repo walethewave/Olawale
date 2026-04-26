@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { InfoIcon } from 'lucide-react';
+import { GithubIcon, GlobeIcon, InfoIcon } from 'lucide-react';
 
 import { Project } from '@/types/project';
 
