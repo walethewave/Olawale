@@ -18,12 +18,19 @@ function About() {
             <div className="space-y-4">
               <p className="max-w-[700px] text-gray-500 dark:text-gray-400 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                 <TextReveal>
-                I&apos;m an AI Engineer who transforms complex challenges into intelligent solutions. With expertise in 
-                machine learning, deep learning, and natural language processing, I build production-ready AI systems 
-                that solve real-world problems. From conversational AI platforms to advanced NLP pipelines, I specialize 
-                in creating scalable, explainable AI applications that drive meaningful impact. My journey from data 
-                analysis to AI engineering has equipped me with a unique perspective on turning data insights into 
-                intelligent automated systems.
+                  I&apos;m an AI Engineer at Qucoon —
+                  where I design and ship production AI systems that handle real
+                  financial transactions, real users, and real edge cases.
+
+                  My background in mathematics gives me first-principles
+                  understanding of the models I build — not just the APIs I call.
+
+                  I build things that work in Nigeria, where internet is unreliable,
+                  data is scarce, and most global AI tools were never built with us
+                  in mind.
+
+                  Currently working on: A multilingual conversational AI for Yoruba,
+                  Igbo, Hausa, and English — voice-in, voice-out, no keyboard required.
                 </TextReveal>
               </p>
               <div className="flex gap-2">

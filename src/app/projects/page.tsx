@@ -48,6 +48,8 @@ export default function ProjectsPage(): React.ReactElement {
             title={project.data.title}
             href={project.url}
             description={project.data.description}
+            website={project.data.website}
+            github={project.data.github}
             key={`project_${index}`}
             tags={project.data.tags}
             thumbnail={`/images/projects/${project.slugs[0]}/cover.jpg`}
