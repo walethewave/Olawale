@@ -7,7 +7,6 @@ import {
   QucoonWork,
   Projects,
   NextBuild,
-  Testimonials,
   Contact,
   Footer
 } from '@/components/sections';
@@ -27,7 +26,6 @@ export default function Home() {
           <Experience />
           <QucoonWork />
           <Projects />
-          <Testimonials />
           <NextBuild />
           <Contact />
           <Footer />
