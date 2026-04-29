@@ -17,8 +17,9 @@ function Experiences() {
             </h2>
             <p className="text-gray-500 dark:text-gray-400">
               <TextReveal>
-                Here are some of my work experiences where I&apos;ve turned
-                challenges into accomplishments, making things happen.
+                Here are the roles and client projects where I&apos;ve built
+                scalable systems, delivered real work, and turned challenges
+                into shipped solutions.
               </TextReveal>
             </p>
           </div>
