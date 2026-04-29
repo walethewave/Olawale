@@ -1,0 +1,53 @@
+---
+title: "Insightflow — Building Materials Inventory Tracker"
+description: Conversational inventory tracking for building materials stores. Parses single and multi-entry sales in natural language with Gemini plus regex fallback, saves transactions in Supabase, and exposes Power BI-ready SQL views for reporting.
+date: 2025-09-15
+website: https://github.com/walethewave/Insightflow
+github: https://github.com/walethewave/Insightflow
+thumbnail: /placeholder.svg
+tags:
+  - label: Next.js
+  - label: TypeScript
+  - label: Google Gemini
+  - label: Supabase
+  - label: PostgreSQL
+  - label: Power BI
+  - label: Conversational UI
+  - label: Inventory Management
+---
+
+# Insightflow — Building Materials Inventory Tracker
+
+Insightflow is a conversational inventory tracker for building materials stores. Instead of filling out forms, users can describe transactions naturally and the app parses them into structured records.
+
+## What It Solves
+
+Building materials businesses often track inventory and sales manually. That slows people down, creates inconsistent records, and makes reporting harder than it needs to be. Insightflow was built to reduce that friction by turning plain-language input into usable transaction data.
+
+## What It Does
+
+- Accepts single or multiple entries in one message
+- Parses transactions with Google Gemini and a regex fallback
+- Confirms structured output before saving data
+- Stores data in Supabase PostgreSQL
+- Exposes SQL views for Power BI reporting
+- Supports a clean, chat-style interface for mobile and desktop
+
+## Technical Notes
+
+The app follows a simple flow: user input goes through parsing, validation, confirmation, and persistence. It is designed to be resilient, so if the AI parser fails, the fallback parser still handles common formats.
+
+The system also includes a dashboard-friendly data model so the stored records can be analyzed later in Power BI without extra transformation work.
+
+## Key Features
+
+- Multiple transaction support in one message
+- Natural-language parsing for real store input
+- Validation and confirmation before save
+- Light/dark theme support
+- Mobile-first responsive layout
+- Power BI-ready analytics views
+
+## Why It Matters
+
+Insightflow is a practical example of applied AI: a small product that solves a real workflow problem. It combines conversational UX, parsing logic, and database design into one focused tool.

@@ -44,7 +44,9 @@ function Projects() {
               description={project.data.description}
               key={`project_${index}`}
               tags={project.data.tags}
-              thumbnail={`/images/projects/${project.slugs[0]}/cover.jpg`}
+              thumbnail={
+                project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
+              }
             />
           ))}
         </div>

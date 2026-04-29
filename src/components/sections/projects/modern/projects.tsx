@@ -41,7 +41,8 @@ function Projects() {
         website: project.data.website,
         github: project.data.github,
         tags: project.data.tags,
-        thumbnail: `/images/projects/${project.slugs[0]}/cover.jpg`
+        thumbnail:
+          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
       })),
     confidenceAIProject,
     ...projects
@@ -54,7 +55,8 @@ function Projects() {
         website: project.data.website,
         github: project.data.github,
         tags: project.data.tags,
-        thumbnail: `/images/projects/${project.slugs[0]}/cover.jpg`
+        thumbnail:
+          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
       }))
   ];
 

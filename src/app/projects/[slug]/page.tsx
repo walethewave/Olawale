@@ -30,6 +30,8 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   const page = project.getPage([slug]);
   if (!page) notFound();
 
+  const thumbnail = page.data.thumbnail ?? `/images/projects/${slug}/cover.jpg`;
+
   return createMetadata({
     title: page.data.title,
     description: page.data.description,
@@ -40,8 +42,8 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
           alt: 'banner',
           width: 1200,
           height: 630,
-          url: `/images/projects/${slug}/cover.jpg`,
-          type: 'image/png'
+          url: thumbnail,
+          type: thumbnail.endsWith('.svg') ? 'image/svg+xml' : 'image/png'
         }
       ],
       authors: meta.author.name
@@ -53,7 +55,7 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
           alt: 'banner',
           width: 1200,
           height: 630,
-          url: `/images/projects/${slug}/cover.jpg`
+          url: thumbnail
         }
       ]
     }
@@ -69,6 +71,8 @@ export default async function ProjectPage({
   const page = project.getPage([slug]);
   if (!page) notFound();
 
+  const thumbnail = page.data.thumbnail ?? `/images/projects/${slug}/cover.jpg`;
+
   const {
     data: { toc, body, structuredData }
   } = page;
@@ -78,7 +82,7 @@ export default async function ProjectPage({
       <div className="container mx-auto">
         <Header metadata={page.data} />
         <Image
-          src={`/images/projects/${slug}/cover.jpg`}
+          src={thumbnail}
           width={1280}
           height={832}
           alt={`Image of ${page.data.title}`}
