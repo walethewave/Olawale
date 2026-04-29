@@ -2,7 +2,8 @@ import { Contact } from '@/types/contact';
 import {
   SiGithub,
   SiLinkedin,
-  SiX
+  SiX,
+  SiTiktok
 } from '@icons-pack/react-simple-icons';
 
 const contact: Contact = {
@@ -20,8 +21,13 @@ const contact: Contact = {
     },
     {
       name: 'Linkedin',
-      href: 'https://www.linkedin.com/in/olawale-goodluck-691114255/',
+      href: 'https://www.linkedin.com/in/olawale-afolabi-691114255/',
       Icon: SiLinkedin
+    },
+    {
+      name: 'TikTok',
+      href: 'https://www.tiktok.com/@data_withwale',
+      Icon: SiTiktok
     }
   ]
 };

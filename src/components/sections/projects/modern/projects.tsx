@@ -47,7 +47,7 @@ function Projects() {
     confidenceAIProject,
     ...projects
       .filter((project) => project.data.title !== confidenceAIProject.title)
-      .slice(2)
+      .slice(2, 3)
       .map((project) => ({
         title: project.data.title,
         description: project.data.description,
