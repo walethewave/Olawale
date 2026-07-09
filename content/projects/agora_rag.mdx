@@ -1,0 +1,63 @@
+---
+title: "Agora — RAG System for AI Governance Documents"
+description: Production-grade retrieval-augmented generation system over the ETO AGORA Corpus of global AI governance documents, regulations, and laws. Uses sub-query decomposition, Gemini 2.5 Flash, and Pinecone for grounded, source-cited answers, with a dedicated evaluation dashboard for measuring retrieval and answer quality.
+date: 2026-06-08
+website: https://agora-rag.streamlit.app/
+github: https://github.com/walethewave/Agora-RAG
+tags:
+  - label: RAG
+  - label: Google Gemini
+  - label: Pinecone
+  - label: FastAPI
+  - label: Streamlit
+  - label: Upstash Redis
+  - label: Python
+  - label: Deployed App
+---
+
+# Agora — RAG System for AI Governance Documents
+
+Agora is a production-grade Retrieval-Augmented Generation system built for the ETO AGORA Corpus — a collection of AI governance documents, regulations, and laws from jurisdictions worldwide. It lets users ask natural-language questions about policy documents and get grounded, source-attributed answers instead of hallucinated summaries.
+
+## What It Does
+
+Agora answers questions over AI governance documentation with an emphasis on accuracy over speed. Every response is anchored in retrieved documents, source-attributed, and filtered through a governance-analyst persona that distinguishes between what documents prohibit, require, recommend, or permit.
+
+## Key Features
+
+**Intelligent Query Processing**
+- Sub-query decomposition splits multi-part questions into 1–5 focused retrieval passes for comprehensive coverage
+- Conversational intent detection short-circuits RAG for greetings and pleasantries
+- Parallel embedding and retrieval across sub-queries
+
+**Context Management**
+- Multi-turn conversation memory via Upstash Redis (30-minute model context window, 7-day UI history)
+- Automatic deduplication of repeated content
+- Source citations with cosine similarity scores
+
+**Production Infrastructure**
+- Document ingestion pipeline supporting `.txt` and PDF formats
+- Background task management for large uploads
+- Namespace isolation for multiple document collections
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Backend | FastAPI + Uvicorn |
+| Embeddings | Gemini Embedding 2 (1536D) |
+| Text Generation | Gemini 2.5 Flash |
+| Vector Store | Pinecone (serverless, cosine) |
+| Session Memory | Upstash Redis |
+| Frontend | Streamlit |
+| PDF Parsing | pdfplumber |
+
+## Architecture
+
+The pipeline runs five sequential steps: sub-query decomposition classifies intent, parallel embedding and Pinecone retrieval fetch relevant chunks, context assembly deduplicates and ranks results, Gemini synthesizes a grounded answer, and conversation memory stores the exchange for future context injection.
+
+## Evaluation
+
+A dedicated evaluation dashboard tracks retrieval and answer quality on the [`eval-dashboard`](https://github.com/walethewave/Agora-RAG/tree/eval-dashboard) branch, deployed live at [evaluation-dashboard.streamlit.app](https://evaluation-dashboard.streamlit.app/). It gives a quantitative view of how well the system retrieves and grounds answers, rather than relying on qualitative spot-checks alone.
+
+[Try Agora live →](https://agora-rag.streamlit.app/) · [View the evaluation dashboard →](https://evaluation-dashboard.streamlit.app/)
