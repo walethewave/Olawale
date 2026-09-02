@@ -2,9 +2,9 @@
 title: "Insightflow — Building Materials Inventory Tracker"
 description: Conversational inventory tracking for building materials stores. Parses single and multi-entry sales in natural language with Gemini plus regex fallback, saves transactions in Supabase, and exposes Power BI-ready SQL views for reporting.
 date: 2025-09-15
-website: https://github.com/walethewave/Insightflow
 github: https://github.com/walethewave/Insightflow
 thumbnail: /placeholder.svg
+architectureDeck: /architecture/projects/insightflow/deck.pptx
 tags:
   - label: Next.js
   - label: TypeScript
@@ -38,6 +38,32 @@ Building materials businesses often track inventory and sales manually. That slo
 The app follows a simple flow: user input goes through parsing, validation, confirmation, and persistence. It is designed to be resilient, so if the AI parser fails, the fallback parser still handles common formats.
 
 The system also includes a dashboard-friendly data model so the stored records can be analyzed later in Power BI without extra transformation work.
+
+## Solution Architecture
+
+**Request flow, per message:**
+
+```
+User message ("10 cement at 5000, 50 iron rods for 75000")
+  → Conversational detection (greeting/question? respond directly, skip parsing)
+  → /api/parse
+      → Gemini 2.5 Flash (structured JSON extraction, handles natural-language variation)
+      → on failure/quota limit: regex fallback (3 patterns: "qty item at price",
+        "item for total", "qty item price") — handles ~90% of common formats
+  → Canonical item mapping ("loaf" → "bread", dictionary-based, for clean analytics)
+  → /api/validate → ConfirmationCard shown to user (multi-item, with grand total)
+  → User confirms → /api/transactions → Supabase (Postgres) insert
+  → Pre-aggregated SQL views (daily_summary, category_performance, top_items)
+      → read directly by Power BI, no live query-time joins
+```
+
+**Key engineering decisions (from the project's own design notes):**
+
+- **Regex fallback exists because Gemini has quota limits and can fail** — parsing isn't allowed to be a single point of failure. The fallback won't handle everything Gemini can, but it keeps the app usable when the API is down or rate-limited, rather than blocking data entry entirely.
+- **Conversational input is detected and short-circuited before parsing** — early versions threw parse errors when a user typed "hi" or "help." Detecting greetings/questions and responding directly, instead of forcing every input through the transaction parser, was a direct fix for a real observed failure mode.
+- **Canonical item names, not raw string matching** — "bread", "Bread", and "loaf" all get mapped to one canonical name via a dictionary lookup before storage, so analytics aren't fragmented across spelling/naming variants of the same item.
+- **Power BI reads pre-computed views, not raw tables** — `daily_summary`, `category_performance`, and similar views are computed once in Postgres rather than joined at dashboard-refresh time, keeping reporting fast regardless of how the underlying schema evolves.
+- **Confirmation step before persistence** — parsed output (single or multi-item) is shown back to the user as a structured card before anything is saved, so an AI misparse gets caught before it becomes a bad record rather than after.
 
 ## Key Features
 

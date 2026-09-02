@@ -4,6 +4,7 @@ description: Production-grade retrieval-augmented generation system over the ETO
 date: 2026-06-08
 website: https://agora-rag.streamlit.app/
 github: https://github.com/walethewave/Agora-RAG
+architectureDeck: /architecture/projects/agora_rag/deck.pptx
 tags:
   - label: RAG
   - label: Google Gemini
@@ -52,9 +53,41 @@ Agora answers questions over AI governance documentation with an emphasis on acc
 | Frontend | Streamlit |
 | PDF Parsing | pdfplumber |
 
-## Architecture
+## Solution Architecture
 
-The pipeline runs five sequential steps: sub-query decomposition classifies intent, parallel embedding and Pinecone retrieval fetch relevant chunks, context assembly deduplicates and ranks results, Gemini synthesizes a grounded answer, and conversation memory stores the exchange for future context injection.
+**Request pipeline** — every question runs through five stages:
+
+```
+User Question
+  → Sub-Query Decomposition (Gemini 2.5 Flash classifies intent: conversational / single / multi-part)
+  → Parallel Embedding + Pinecone Retrieval (top-4 chunks per sub-query, cosine similarity)
+  → Context Assembly (dedupe by chunk-text prefix, rank by score, pull last 5 turns from Redis)
+  → Answer Synthesis (Gemini 2.5 Flash, strict governance-analyst system prompt)
+  → Response + Memory Write (answer + sources returned; Q&A pair saved to Redis, 30-min TTL)
+```
+
+**Component ownership** — a deliberately thin HTTP layer over a focused core:
+
+| Component | Responsibility |
+|---|---|
+| `app.py` (FastAPI) | Request validation only — delegates to the RAG core, returns JSON |
+| `simplified_rag.py` | Extraction, chunking, embeddings, Pinecone upsert/query, orchestration |
+| `chat_engine.py` | Sub-query decomposition + answer synthesis |
+| `utils.py` | Redis-backed conversation memory (TTL + window trimming) |
+| `prompts.yaml` | Every prompt template, loaded once at startup — no hardcoded prompts in code |
+
+**Key engineering decisions:**
+
+- **Sub-query decomposition trades ~2–3s latency for completeness** — a single embedding call averages across multi-part questions and silently drops one half of the answer; splitting into up to 5 sub-queries and retrieving in parallel fixes that. For a governance tool, correctness wins over speed.
+- **1536D embeddings, chosen for the domain, not the default** — policy language draws fine distinctions (*prohibits* vs. *recommends* vs. *permits*) that benefit from the higher-dimensional space; Pinecone's free tier absorbs the cost.
+- **Chunk size tuned to the corpus, not left at the library default** — the default 1,200-token target collapsed each short AGORA document into a single chunk, destroying retrieval granularity. Retuning to 500 tokens (20% overlap) produced 36 meaningfully-distinct chunks from 10 files.
+- **Two separate Redis stores, not one** — a 30-minute, 5-message window feeds the model (older context dilutes retrieval relevance); a separate 7-day store backs the UI so users can reopen old sessions. Different jobs, deliberately kept apart.
+- **Failures are loud, not silent** — an earlier version returned zero-vectors on embedding failure, which Pinecone rejects with an opaque error. Replaced with explicit exponential-backoff retries (3 attempts) and hard failure — silent failure in an embedding pipeline is worse than a visible one.
+- **Namespace isolation is trust-based, not cryptographic** — a single Pinecone index serves multiple document sets via `entity_id` namespaces, unvalidated server-side. Fine for this use case; called out explicitly as unsuitable for sensitive multi-tenant data without separate indexes.
+
+**Known limitations:** scanned/image-based PDFs aren't extractable via `pdfplumber`; the 30-minute model-context TTL means very old sessions lose continuity even though UI history persists; namespace isolation isn't enforced server-side.
+
+**Next architectural steps:** hybrid search (BM25 + semantic) to catch exact statute references semantic search misses; cross-encoder reranking on the top-20 before final top-4 selection; metadata filtering (`jurisdiction`, `document_type`, `year`) for scoped queries.
 
 ## Evaluation
 

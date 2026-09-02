@@ -1,9 +1,9 @@
 ---
 title: "Digital Lending E-Sign Prediction System"
-description: Built an end-to-end ML system that predicts whether loan applicants will complete electronic signing — a real bottleneck in digital lending. Engineered features like income-to-loan ratios and composite risk scores, trained a deployable logistic regression model, and exported it as a .pkl file ready for production integration.
+description: Built an end-to-end ML system that predicts whether loan applicants will complete electronic signing — a real bottleneck in digital lending. Engineered features like income-to-loan ratios and composite risk scores, compared six models (logistic regression through XGBoost/LightGBM/CatBoost) with tuning and overfitting checks, and exported the winner as a .pkl file ready for production integration.
 date: 2025-07-01
-website: https://github.com/walethewave/Digital-Lending-E-Sign-Prediction-System
 github: https://github.com/walethewave/Digital-Lending-E-Sign-Prediction-System
+architectureDeck: /architecture/projects/digital_lending_esign_prediction/deck.pptx
 tags:
   - label: Fintech
   - label: Predictive Modeling
@@ -11,7 +11,7 @@ tags:
   - label: Feature Engineering
   - label: Python
   - label: Model Deployment
-  - label: Logistic Regression
+  - label: XGBoost
 ---
 
 # Digital Lending E-Sign Prediction System
@@ -35,15 +35,43 @@ This is where the value lives:
 - Encoded categorical variables like pay schedule for proper model consumption
 
 ### Model & Results
-Trained logistic regression with a focus on interpretability — when a lender asks "why did you flag this person?", you need an answer that makes sense.
+Started with logistic regression as an interpretable baseline, then ran a full model comparison — Decision Tree, Random Forest, XGBoost, LightGBM, CatBoost, and Gradient Boosting — each tuned via GridSearchCV/RandomizedSearchCV, with an explicit overfitting/underfitting pass (train vs. validation score gap) before picking a winner.
 
 - **E-signing rate:** ~54% of applicants completed it
+- **Baseline (Logistic Regression):** ROC-AUC 0.60 — deliberately weak, kept as the interpretability reference point
+- **Best model (XGBoost, tuned):** ROC-AUC ≈ 0.69 on the held-out test set
 - **Key predictors:** Age, income, risk scores, home ownership, employment duration
 - **Exported model:** Saved as `.pkl` — plug it into a Flask API or any scoring pipeline
 
 ### Visualization
 Built comprehensive visualizations showing the relationship between features and e-signing behavior. Patterns like income brackets, age groups, and risk profiles tell a clear story about who converts.
 
+## Solution Architecture
+
+**Modeling pipeline:**
+
+```
+Raw applicant data (train.csv)
+  → Data cleaning (missing values, duplicate IDs)
+  → Feature engineering (total_employment_years, income_to_loan_ratio, composite_risk_score)
+  → Categorical encoding (pay schedule, etc.)
+  → Baseline: Logistic Regression (interpretability reference, ROC-AUC 0.60)
+  → Model comparison: Decision Tree, Random Forest, XGBoost, LightGBM, CatBoost, Gradient Boosting
+      each tuned via GridSearchCV + RandomizedSearchCV
+  → Overfitting/underfitting check (train vs. validation score gap) per model
+  → Best model selection: XGBoost (ROC-AUC ≈ 0.69 on test set)
+  → Feature importance extraction + export (.pkl)
+```
+
+**Key engineering decisions:**
+
+- **Logistic regression kept as a deliberate baseline, not the final answer** — it's weak (ROC-AUC 0.60, and the notebook's own underfitting analysis flags it as "not enough learning"), but it's interpretable, and interpretability has real value in lending decisions. Comparing every boosted model's lift against this baseline keeps the improvement honest.
+- **Six models compared, not one picked by default** — Decision Tree, Random Forest, XGBoost, LightGBM, CatBoost, and Gradient Boosting were each tuned independently rather than assuming boosting would obviously win. XGBoost came out ahead on the held-out test set.
+- **Explicit overfitting/underfitting analysis before model selection** — train vs. validation score gaps were checked per model, not just the final test metric, to catch a model that memorized training data rather than generalized.
+- **Honest about the ceiling** — the notebook's own limitations note: "ROC-AUC is moderate; not suitable for high-stakes decisions yet." A ~0.69 ROC-AUC model is useful for prioritizing outreach, not for autonomous approve/deny decisions, and the project doesn't claim otherwise.
+
+**Documented next steps:** incorporate user interaction/behavioral data beyond the static applicant fields; build a pipeline for continuous model evaluation as new data arrives.
+
 ## Why This Matters
 
-This is the kind of ML work that directly impacts revenue. Every percentage point improvement in predicting e-sign completion means fewer wasted outreach dollars and faster loan processing. The model is intentionally simple and interpretable — because in financial services, a model nobody trusts is a model nobody uses.
+This is the kind of ML work that directly impacts revenue. Every percentage point improvement in predicting e-sign completion means fewer wasted outreach dollars and faster loan processing. The interpretable baseline stays in the loop even after boosting won — because in financial services, a model nobody can explain is a model nobody trusts.

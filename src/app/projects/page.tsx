@@ -10,7 +10,7 @@ import ProjectCard from '@/app/projects/_components/project-card';
 const confidenceAIProject = {
   title: 'ConfidenceAI — Live Coaching Platform',
   description:
-    'Real-time AI confidence coaching with explainable scoring. Not generic motivational text — structured psychological frameworks delivered through Google Gemini with session memory. Pydantic validation ensures consistent, structured output every session.',
+    'Real-time AI confidence coaching with explainable scoring. Not generic motivational text — a hybrid keyword + Gemini confidence assessment (biased toward the more cautious read) drives structured, Pydantic-validated coaching responses, with retry-and-fallback logic so a flaky API call never leaves a struggling user with silence.',
   href: '/projects/confidence_ai_coaching',
   website: 'https://9punzdhswetzx92taubijy.streamlit.app/',
   github: 'https://github.com/walethewave/AI-Powered-Confidence-Coaching-App',

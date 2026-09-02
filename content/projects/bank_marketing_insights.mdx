@@ -1,15 +1,80 @@
 ---
-title: "Bank Marketing Campaign Prediction"
-description: Dug into bank marketing campaign data to figure out which customers are actually worth calling. Built predictive models that cut through demographics, financial history, and past campaign interactions to identify high-conversion prospects — so marketing teams stop wasting calls on people who were never going to say yes.
+title: "Bank Marketing Insights — Data Cleaning & Correlation Analysis"
+description: Cleaned and analyzed a bank's marketing campaign dataset (client demographics, campaign specifics, economic indicators) to find which factors actually track with campaign success. Ran a full correlation study, tested whether the data supported Multiple Linear Regression, and made the call to stop at correlation-based insights once the linearity assumption failed rather than force a model that didn't fit.
 date: 2024-05-01
-website: https://github.com/walethewave/Bank-Marketing-Insights
 github: https://github.com/walethewave/Bank-Marketing-Insights
 tags:
   - label: Python
-  - label: Machine Learning
-  - label: Scikit-learn
+  - label: Pandas
   - label: Feature Engineering
-  - label: Data Analysis
+  - label: Correlation Analysis
+  - label: EDA
   - label: Jupyter Notebook
 ---
-This AI-powered marketing prediction system represents a comprehensive approach to leveraging machine learning for optimizing bank marketing campaigns. By implementing advanced predictive models including Random Forest, Gradient Boosting, and Neural Networks, the system automatically identifies the most promising prospects and predicts campaign success rates. The solution includes automated feature engineering, hyperparameter optimization, and real-time prediction capabilities, enabling data-driven marketing decisions that significantly improve conversion rates and ROI.
+
+# Bank Marketing Insights — Data Cleaning & Correlation Analysis
+
+A bank's marketing team needed to know which clients were actually worth calling. This project cleans and analyzes their campaign contact data — client demographics, financial indicators, campaign mechanics, and economic context — to surface which factors correlate with a successful outcome, and to be honest about which ones don't hold up statistically.
+
+## What It Does
+
+Takes raw bank marketing campaign data through a full cleaning and encoding pipeline, then runs a correlation analysis against campaign outcome to identify the strongest signals. Along the way, it tests whether the cleaned data would actually support a Multiple Linear Regression model — and when the linearity assumption fails, it stops there rather than reporting a model built on a broken assumption.
+
+## Data Pipeline
+
+- Normalized inconsistent categorical formatting (`job` and `education` fields used periods instead of underscores)
+- Converted `unknown` sentinel values in `credit_default` and `mortgage` to proper `NaN`, then quantified missingness (~20% missing in `credit_default`) instead of silently imputing
+- Reconstructed a proper `last_contact_date` from separate `month`/`day` fields, with `month` cast to an ordered categorical
+- Label-encoded `previous_outcome`; one-hot encoded `job`, `marital`, and `education` for correlation analysis
+- Split the cleaned dataframe into client, campaign, and economic-indicator subsets scoped to their respective analysis questions
+
+## Key Finding: Correlation Over a Forced Regression
+
+A Pearson correlation matrix against the binary `campaign_outcome` target surfaced the strongest signals:
+
+| Feature | Correlation with success |
+|---|---|
+| Contact duration | 0.405 |
+| Client ID | 0.293 |
+| Previous campaign contacts | 0.230 |
+| Previous outcome | 0.130 |
+
+With features encoded, the next step was testing whether the data actually supported **Multiple Linear Regression**. It didn't — the linearity assumption between predictors and the target failed diagnostic checks. Rather than report a regression built on a broken assumption, the analysis stopped at correlation-based insight extraction and flagged predictive modeling as future work requiring techniques that don't assume linearity.
+
+## Insights & Recommendations
+
+- **Contact duration is the single strongest signal** — longer calls track strongly with success, suggesting reps should be coached toward sustained engagement over rushing through calls.
+- **Repeat engagement compounds** — clients with more previous campaign contacts and a positive previous outcome convert at meaningfully higher rates, making re-engagement campaigns a high-leverage target.
+- **Segment-level patterns matter** — students and retirees showed the highest average contact duration; tailoring messaging by occupation, age, and marital status (e.g., stability-focused messaging for older clients, flexibility-focused for singles) is a natural next step.
+
+## Solution Architecture
+
+**Pipeline (single-notebook, no live service):**
+
+```
+Raw campaign CSV (client + campaign + economic attributes)
+  → Categorical normalization (job/education formatting fixes)
+  → Missing-value handling (unknown → NaN, quantified: ~20% missing in credit_default)
+  → Date reconstruction (month/day → ordered categorical → last_contact_date)
+  → Label encoding (previous_outcome) + one-hot encoding (job, marital, education)
+  → Correlation matrix against campaign_outcome
+  → Linear regression assumption check (linearity) → failed → regression abandoned
+  → Insight extraction + segment-level analysis (role, age, education, marital status)
+```
+
+**Key engineering decisions:**
+
+- **Stopped short of forcing a linear model** — after encoding features for Multiple Linear Regression, the notebook explicitly tested the linearity assumption between predictors and the target and found it didn't hold. Rather than ship a model that violated its own statistical assumptions, the analysis was scoped down to correlation-based insight extraction — a deliberate call that a plausible-looking wrong model is worse than an honest correlation study.
+- **Quantified missingness before deciding how to handle it** — `unknown` values in `credit_default`/`mortgage` were converted to `NaN` and measured (~20% missing in `credit_default`) rather than silently imputed, so downstream analysis could account for the gap.
+- **Split into client/campaign/economic subsets** — separating the encoded dataframe by domain keeps each analysis question scoped to the relevant columns instead of one wide, unfocused table.
+
+**Next architectural step:** since linearity assumptions failed, tree-based models (Random Forest, Gradient Boosting) that don't require linear relationships are the natural next step for actual campaign-outcome prediction — not attempted here.
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Data manipulation | Python, Pandas, NumPy |
+| Encoding | Scikit-learn (`LabelEncoder`), one-hot encoding |
+| Analysis | Correlation matrix, linear-regression assumption diagnostics |
+| Environment | Jupyter Notebook |

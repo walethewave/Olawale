@@ -29,11 +29,11 @@ const featuredProjectTitle = 'ConfidenceAI — Live Coaching Platform';
 
 const projectMetrics: Record<string, string> = {
   'Fighting Fraud with Machine Learning':
-    '1M+ transactions · 0.3% fraud rate · 38 engineered features',
+    '1M+ transactions · 0.3% fraud rate · 0.92 AUC-ROC',
   'Dr. Amina — AI Healthcare for Northern Nigeria':
     '648 health documents · 80% confidence threshold · Hausa voice input',
   'Sign Language Hand Gesture Recognition with CNN':
-    '99.75% accuracy · 25 ASL gestures',
+    '99.78% accuracy · 25 ASL gestures',
   'ConfidenceAI — Live Coaching Platform':
     'Live deployment · Real user sessions',
   'Digital Lending E-Sign Prediction System':

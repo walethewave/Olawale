@@ -1,9 +1,9 @@
 ---
 title: "Fighting Fraud with Machine Learning"
-description: Built a production-grade fraud detection system on 1M+ interbank transactions with a 0.3% fraud rate — no synthetic balancing tricks. Engineered 38 behavioral features, trained interpretable models (Logistic Regression → Random Forest), and used SHAP to make every flagged transaction explainable to analysts and regulators.
+description: Built a production-grade fraud detection system on 1M+ interbank transactions with a 0.3% fraud rate — no synthetic balancing tricks. Engineered features, trained interpretable models (Logistic Regression → Random Forest), then ran a self-correcting feature-discovery audit that caught a real data-leakage bug and lifted AUC-ROC from 0.82 to 0.92. SHAP + Gemini make every flagged transaction explainable to analysts.
 date: 2025-12-01
-website: https://github.com/walethewave/Fraud-risk-research-ML
 github: https://github.com/walethewave/Fraud-risk-research-ML
+architectureDeck: /architecture/projects/fraud_risk_detection_ml/deck.pptx
 tags:
   - label: Fraud Detection
   - label: Random Forest
@@ -12,11 +12,12 @@ tags:
   - label: Python
   - label: Scikit-learn
   - label: Imbalanced Learning
+  - label: Next.js
 ---
 
 # Fighting Fraud with Machine Learning
 
-This isn't a Kaggle notebook with synthetic oversampling. It's the messy, iterative work of building fraud detection that actually holds up when fraudsters adapt.
+This isn't a Kaggle notebook with synthetic oversampling. It's the messy, iterative work of building fraud detection that actually holds up when fraudsters adapt — including a real audit that caught a data-leakage bug in the model that was already "done."
 
 ## The Problem
 
@@ -25,29 +26,82 @@ This isn't a Kaggle notebook with synthetic oversampling. It's the messy, iterat
 ## What I Actually Built
 
 ### Feature Engineering (Where 80% of the Work Happened)
-Started with 62 features. Aggressively pruned to 17 that actually matter. Every feature answers one question: **"How weird is this transaction for this user?"**
+Started with 62 features. Aggressively pruned to 17 that actually matter, then — after a later audit (below) — added 2 more back in. Every feature answers one question: **"How weird is this transaction for this user?"**
 
 - Temporal encodings — fraudsters are creatures of habit (midnight to 5 AM spikes confirmed)
-- Velocity signals — transaction count and amount over 24h/7d/lifetime windows
+- Velocity signals — transaction count and amount over 24h/7d windows
 - Behavioral diversity — channel switching and location hopping patterns
 - Risk composites — weighted combinations encoding multi-dimensional suspicion
 
 ### Models & Honest Results
 
-**Logistic Regression (Baseline):** AUC-ROC 0.70 — caught 54% of fraud but with a 99% false positive rate. Completely unusable.
+**Logistic Regression (Baseline):** AUC-ROC 0.70, recall 54.7% — an interpretable linear reference point, not meant to ship.
 
-**Random Forest (Production Model):** AUC-ROC 0.82 — catches nearly 2 out of 3 fraud cases. Got there through careful depth limiting, balanced class weights, and letting the trees find the non-linear boundaries that logistic regression missed.
+**Random Forest (Production Model), corrected:** AUC-ROC **0.9227**, recall **67.5%** (405/600 fraud cases caught), precision up ~7.4× over the original version. This is the *post-audit* number — see below for why it moved from an original 0.82.
 
-### SHAP Interpretability
-"The model says so" doesn't fly with fraud analysts or regulators. Built full SHAP analysis — summary plots, dependence plots, force plots, waterfall breakdowns. Transaction amount drives 52% of importance, followed by the composite risk score I engineered at 18%.
+### SHAP + LLM Interpretability
+"The model says so" doesn't fly with fraud analysts or regulators. Every prediction gets SHAP values (why *this* transaction scored *this* way), and those values are fed to Gemini to generate a plain-English explanation grounded strictly in the SHAP numbers and transaction facts — not a free-form LLM guess.
+
+## The Feature-Discovery Audit: A Real Self-Correction
+
+After the 17-feature Random Forest (AUC 0.822) was already the "finished" production model, a closed-loop audit process was run to see if it could be improved — and it caught a real bug in the *original* model, not just found a new one:
+
+```
+Analyze 216 false negatives (missed fraud) → find unused columns that
+differ statistically for missed cases → Gemini proposes 2 candidate
+features → empirically retrain and test AUC impact → audit each
+candidate for temporal (look-ahead) leakage before trusting the gain
+```
+
+**What the audit found:**
+- The AUC jump from adding the candidates looked too large for the modest z-scores that motivated them — that mismatch triggered a deeper leakage check rather than accepting the win.
+- `amount_sum_24h` verified clean (independently recomputed from raw timestamps across all 1,000,000 rows — 99.6% exact match against the stored column).
+- `amount_mean_total` — an existing, already-deployed feature input — turned out to be a **customer-lifetime constant**, identical across every transaction that customer ever made, including ones *after* the row being scored. That's look-ahead leakage, and it directly contradicted the project's own methodology doc, which had claimed all aggregates were look-back-only.
+- The derived `amount_vs_mean_ratio` inherited that leakage and was replaced with `amount_vs_mean_ratio_safe`, a proper backward-only expanding mean per customer.
+- Notably, `composite_risk` — one of the *original* 17 deployed features — correlates 0.54 with the leaky ratio, meaning the original 0.822 AUC already had some diluted exposure to this same leakage. The audit flagged this as a limitation of the base model, not just the add-on experiment.
+
+**Production fix applied and retrained** (not just tested in isolation): 19 total model inputs, AUC-ROC 0.822 → **0.9227**, recall 64.0% → 67.5%, false positives cut from ~40,098 to ~5,315. The retrained model's top feature by Gini importance is now `amount_sum_24h` (0.359) — a feature the original pruning step had discarded entirely, because correlation-based pruning is blind to interaction-only value (it only shows predictive power *combined with* `amount`, not alone).
+
+## Solution Architecture
+
+The system deliberately splits expensive offline computation from a thin live layer, rather than building one big always-live service:
+
+```
+Offline (Python, run by hand — not part of the live site):
+  Trained Random Forest → compute_shap.py (SHAP values per transaction,
+  ~6 min for 200,000 rows) → generate_explanations.py (SHAP + transaction
+  facts → Gemini → plain-English explanation) → export_frontend_data.py
+  → cases.json / discovery.json (static files)
+
+Live (Next.js frontend, deployed):
+  Dashboard (/) and Feature Discovery (/discovery) — fully static, read
+  the pre-computed JSON, no live computation.
+  Case detail (/case/[id]) — static transaction/SHAP/explanation display,
+  EXCEPT the "Ask a follow-up" box, which calls /api/chat live: looks up
+  that case's data, builds a prompt constrained to those facts only, and
+  streams a real Gemini response back.
+```
+
+**Key engineering decisions:**
+
+- **Class weighting over SMOTE** — `class_weight='balanced'` penalizes fraud misclassification ~332× more than legitimate misclassification, preserving all training data and avoiding synthetic fraud patterns that might not reflect reality. SMOTE was evaluated and explicitly deferred, not silently skipped.
+- **Only the interactive part is live** — SHAP computation and explanation generation are slow and expensive, so they run once, offline, and get baked into static JSON. The one thing that's genuinely real-time is the follow-up chat on a case page, because that's the one place interactivity actually matters and the query is cheap (one case, not 200,000 rows).
+- **The leakage audit is the headline decision, not an afterthought** — the project didn't stop at "AUC improved, ship it." An unexpectedly large AUC jump triggered a targeted leakage investigation that found a real bug in the *already-deployed* model, fixed it, and re-verified the fix against raw data at the row level rather than trusting the aggregate metric.
+- **The audit trail is public, including the mistakes** — `feature_discovery/FINDINGS.md` documents an earlier version of this same analysis that reported the wrong AUC gain and an insufficient leakage check (label-leakage only, missing temporal leakage) before being corrected. That correction process is treated as part of the deliverable, not something to hide.
 
 ## Key Findings That Held Up
 
 - Time-of-day is real — fraud risk spikes 2-3x between midnight and 5 AM
 - Mobile is the wild west — faster fraud velocity, higher amounts, weaker controls
-- The best fraud signal: "doing something you've never done before, quickly"
+- The best fraud signal: "doing something you've never done before, relative to your own recent activity" — a signal only visible through feature interactions, not any single column
 - Location alone is weak. Location + velocity + unusual channel = strong signal
+
+## What's Still Open
+
+- Threshold re-optimization hasn't been re-run on the corrected 19-feature model — there's likely more recall available at a better-tuned decision threshold.
+- `composite_risk` still carries some residual exposure to the original leakage, inherited from how it was constructed in the raw dataset (that formula isn't available to fix directly).
+- The explainability pipeline (SHAP + Gemini) was built against the old 17-feature model and needs to be re-run against the corrected 19-feature one.
 
 ## Why This Matters
 
-Fraud detection is adversarial. Fraudsters test your boundaries, find blind spots, and adapt. This project treats it that way — no magic accuracy claims, honest about trade-offs, built for the people who actually need to trust and use the model.
+Fraud detection is adversarial. Fraudsters test your boundaries, find blind spots, and adapt. This project treats it that way — no magic accuracy claims, an honest audit trail including a bug found in a model already called "done," and built for the people who actually need to trust and use it.

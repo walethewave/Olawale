@@ -1,8 +1,7 @@
 ---
-title: "Sentiment Lab - NLP Sentiment Analysis Pipeline"
-description: Built a modular sentiment analysis system that goes from raw messy text to predictions in under 50ms. Handles the ugly stuff — encoding errors, social media noise, Unicode weirdness — and still hits 92% training accuracy with Naive Bayes on TF-IDF features. Designed as plug-and-play components so you can swap models without rewriting the pipeline.
+title: "Sentiment Lab — Twitter Sentiment Classification Baseline"
+description: A TF-IDF + Naive Bayes baseline for classifying gaming/brand tweets (Borderlands, Call of Duty, Nvidia, and others) as Positive or Negative. 62% accuracy on a small held-out test set — reported honestly as a first baseline, not a production system, with the incomplete steps (full-dataset training, 4-class handling, actual validation-set evaluation) named explicitly.
 date: 2025-07-01
-website: https://github.com/walethewave/Sentiment-Lab-NLP
 github: https://github.com/walethewave/Sentiment-Lab-NLP
 tags:
   - label: NLP
@@ -11,159 +10,59 @@ tags:
   - label: TF-IDF
   - label: NLTK
   - label: Python
-  - label: ML Pipeline
   - label: Text Classification
 ---
 
-# Sentiment Lab: Production-Ready NLP Sentiment Analysis System
+# Sentiment Lab — Twitter Sentiment Classification Baseline
 
-Sentiment Lab represents my approach to solving one of the most common yet challenging problems in modern AI: extracting meaningful insights from unstructured text data. This project demonstrates end-to-end machine learning engineering, from raw data processing to production-ready deployment.
+A TF-IDF + Multinomial Naive Bayes baseline for classifying tweets about gaming brands and platforms (Borderlands, Call of Duty, Nvidia, FIFA, and dozens of others) as Positive or Negative sentiment.
 
-## The Challenge
+## What It Does
 
-In today's data-driven world, organizations are overwhelmed with text data from social media, customer reviews, and feedback systems. Manual sentiment analysis is slow, inconsistent, and doesn't scale. Teams need robust, automated solutions that can process thousands of text samples while maintaining accuracy and interpretability.
+Takes the Twitter Entity Sentiment dataset — tweets labeled by brand/entity and sentiment class — and trains a classic ML baseline: clean the text, vectorize with TF-IDF, classify with Naive Bayes. This page reports what was actually built and measured, not an aspirational production pipeline.
+
+## What Was Built
+
+- **Data:** A random 500-row sample from `twitter_training.csv` (the full dataset is much larger), reduced to 302 rows after dropping a missing review and restricting to the **Positive** and **Negative** classes only — **Neutral** and **Irrelevant** were excluded, so this is a binary classifier, not a full 4-class sentiment model
+- **Preprocessing:** NLTK tokenization (`RegexpTokenizer`) with stopword removal
+- **Features:** TF-IDF vectorization (302 samples × 1,661 features)
+- **Model:** `MultinomialNB`, trained on an 80/20 train/test split (241 train / 61 test)
+
+## Results (Real, Measured)
+
+On the 61-sample held-out test set:
+
+| Class | Precision | Recall | F1 |
+|---|---|---|---|
+| Negative | 0.65 | 0.67 | 0.66 |
+| Positive | 0.59 | 0.57 | 0.58 |
+
+**Overall accuracy: 62%.** That's a modest result for a binary classification task — meaningfully above the ~54% majority-class baseline for this split, but not a strong classifier. It's reported as what it is: a first baseline on a small sample, not a finished system.
+
+## What's Incomplete (Named Honestly)
+
+- **The validation set was never evaluated.** `twitter_validation.csv` is loaded and filtered to match the binary setup, but the trained model is never actually run against it — there's no validation accuracy to report, despite validation data being present in the repo.
+- **Trained on ~300 rows, not the full dataset.** The 500-row sample (down to 302 after class filtering) is a small fraction of the available training data. A production baseline would train on the full set.
+- **Neutral and Irrelevant classes are dropped, not handled.** Real-world sentiment classification needs to deal with ambiguous and off-topic text, not just discard it.
 
 ## Solution Architecture
 
-Sentiment Lab is a modular, extensible sentiment analysis pipeline designed for production environments. The system transforms raw, noisy text into actionable sentiment predictions through a carefully engineered ML workflow.
-
-### Core Components
-
-**Data Ingestion Engine**
-- Flexible CSV data loading with encoding handling
-- Support for multiple data formats and sources
-- Automated data validation and quality checks
-
-**Advanced Text Preprocessing**
-- NLTK-powered tokenization and normalization
-- Intelligent stopword removal and filtering
-- Custom text cleaning for domain-specific noise
-- Unicode and encoding error handling
-
-**Feature Engineering Pipeline**
-- TF-IDF vectorization for semantic representation
-- High-dimensional feature extraction with optimization
-- Configurable vocabulary limits and n-gram support
-- Memory-efficient sparse matrix operations
-
-**Machine Learning Core**
-- Multinomial Naive Bayes for fast, interpretable classification
-- Automated train/validation splits with stratification
-- Cross-validation support for robust model evaluation
-- Extensible architecture for algorithm swapping
-
-## Technical Implementation
-
-### Performance Metrics
-- **Training Accuracy**: 92% on diverse text datasets
-- **Validation Accuracy**: 89% with strong generalization
-- **Inference Speed**: under 50ms per prediction (CPU-optimized)
-- **Memory Efficiency**: Handles large datasets with minimal RAM usage
-
-### Key Features
-
-**Plug-and-Play Architecture**
-```python
-from pipeline import SentimentLab
-
-pipeline = SentimentLab()
-pipeline.train()
-result = pipeline.predict("This product exceeded my expectations!")
-# Output: 'positive'
+```
+twitter_training.csv (full dataset)
+  → Random 500-row sample → drop 1 missing review → 499 rows
+  → Filter to Positive/Negative only → 302 rows
+  → NLTK tokenization + stopword removal
+  → TF-IDF vectorization (302 × 1,661 features)
+  → 80/20 train/test split (241 / 61)
+  → MultinomialNB → 62% test accuracy
+  (twitter_validation.csv loaded and filtered, but not yet evaluated against the model)
 ```
 
-**Advanced Preprocessing Pipeline**
-- Automated text cleaning and normalization
-- Smart handling of social media text (hashtags, mentions, URLs)
-- Configurable preprocessing steps for different domains
-- Robust error handling for malformed text
+**Key engineering decisions:**
 
-**Production-Ready Design**
-- Modular components for easy maintenance and updates
-- Comprehensive error handling and logging
-- Memory-optimized processing for large datasets
-- Cross-platform compatibility (Windows, macOS, Linux)
+- **TF-IDF + Naive Bayes as a deliberate first baseline** — a fast, interpretable starting point before reaching for anything heavier. The value of a baseline is knowing what "better" needs to beat, not being the final answer.
+- **Binary scoping was a real simplification, and it's named as one** — dropping Neutral/Irrelevant made the problem tractable for a first pass, at the direct cost of not handling two of the four real classes in the data.
 
-## Technical Stack
+## Why This Matters
 
-**Core Technologies**: Python, Scikit-learn, NLTK, Pandas, NumPy
-**Machine Learning**: Multinomial Naive Bayes, TF-IDF Vectorization
-**Data Processing**: Advanced text preprocessing, feature engineering
-**Development**: Jupyter Notebook, modular Python architecture
-**Testing**: Unit tests, integration tests, performance benchmarks
-
-## Engineering Excellence
-
-### Robust Testing Strategy
-- Comprehensive unit tests for all components
-- Integration tests for end-to-end pipeline validation
-- Performance benchmarks and regression testing
-- Automated CI/CD with GitHub Actions
-
-### Scalable Architecture
-- Modular design allows component replacement
-- Memory-efficient processing for production workloads
-- Configurable parameters for different use cases
-- Extensible framework for advanced models
-
-### Documentation & Usability
-- Comprehensive API documentation
-- Clear examples and usage patterns
-- Troubleshooting guides and common solutions
-- Cross-platform installation instructions
-
-## Real-World Applications
-
-This system is designed for practical deployment in:
-- **Social Media Monitoring**: Analyze brand sentiment across platforms
-- **Customer Feedback Analysis**: Automatically categorize support tickets
-- **Product Review Processing**: Extract insights from e-commerce reviews
-- **Market Research**: Understand consumer sentiment trends
-
-## Innovation & Impact
-
-### Technical Achievements
-✅ **End-to-End Pipeline**: Complete ML workflow from raw data to predictions
-✅ **Production-Ready Code**: Robust error handling, logging, and testing
-✅ **Modular Architecture**: Easy to extend and maintain
-✅ **Performance Optimization**: Fast inference with high accuracy
-✅ **Cross-Platform Support**: Works seamlessly across operating systems
-
-### Engineering Best Practices
-- Clean, documented, and maintainable codebase
-- Comprehensive testing suite with high coverage
-- Version control and collaborative development practices
-- Performance profiling and optimization techniques
-
-## Future Enhancements
-
-**Advanced Model Integration**
-- Deep learning models (LSTM, BERT, Transformers)
-- Multi-language sentiment analysis capabilities
-- Real-time streaming data processing
-
-**Enhanced Features**
-- Interactive web dashboard for live predictions
-- Model explainability with LIME/SHAP integration
-- Automated hyperparameter tuning and optimization
-- Docker containerization for deployment
-
-**Scalability Improvements**
-- Distributed processing for big data scenarios
-- Cloud deployment with auto-scaling capabilities
-- API endpoints for microservice integration
-
-## Learning Outcomes
-
-This project showcased advanced skills in:
-- **NLP Engineering**: Text preprocessing, feature extraction, and model optimization
-- **Production ML**: Building robust, scalable machine learning systems
-- **Software Engineering**: Modular design, testing, and documentation
-- **Performance Optimization**: Memory efficiency and computational speed
-- **System Architecture**: Designing extensible, maintainable ML pipelines
-
-Sentiment Lab demonstrates my ability to transform complex NLP challenges into practical, production-ready solutions that deliver real business value.
-
----
-
-*This project exemplifies my commitment to building AI systems that are not just accurate, but robust, scalable, and ready for real-world deployment.*
+A 62%-accuracy binary baseline on 302 rows isn't an impressive number on its own — but reporting it accurately, alongside exactly what wasn't finished (validation evaluation, full-dataset training, 4-class handling), is more useful than a polished-sounding page that collapses under the first follow-up question about test coverage or validation accuracy. The next real step here is finishing the validation evaluation that's already half-built in the repo.

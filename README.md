@@ -31,9 +31,9 @@ Recent updates include a production work section for Qucoon, a multilingual AI r
 ## <a name="ai-projects">🧠 Featured AI Projects</a>
 
 - **🎮 AI-Powered Sentence Completion**: NLP system for video game narrative generation
-- **💭 Sentiment Lab**: Production-ready sentiment analysis pipeline
+- **💭 Sentiment Lab**: TF-IDF + Naive Bayes sentiment classification baseline
 - **🌟 ConfidenceAI**: AI-powered personal coaching platform with live deployment
-- **🏦 AI Banking Insights**: Machine learning system for marketing campaign optimization
+- **🏦 Bank Marketing Insights**: Data cleaning and correlation analysis for campaign targeting
 
 ## <a name="tech-stack">🚀 Tech Stack</a>
 

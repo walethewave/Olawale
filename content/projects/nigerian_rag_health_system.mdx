@@ -4,6 +4,7 @@ description: Built a medical RAG chatbot that serves Northern Nigeria's underser
 date: 2026-02-01
 website: https://datafest-2025-nmdfdv5hm57ejulupy3g6p.streamlit.app/
 github: https://github.com/walethewave/Nigerian-RAG-Health-System
+architectureDeck: /architecture/projects/nigerian_rag_health_system/deck.pptx
 tags:
   - label: RAG
   - label: Google Gemini
@@ -29,15 +30,26 @@ Dr. Amina is a multilingual AI healthcare assistant that answers medical questio
 - **Hausa voice input** via speech-to-text, because health literacy starts with language accessibility
 - **Supabase chat persistence** so conversations carry context across sessions
 
-## Architecture
+## Solution Architecture
 
 ```
-User Query → Gemini Embedding → Pinecone Retrieval (top-k documents)
-    → Context Assembly → Gemini Generation → Response
-    → Emergency Classifier → Alert (if confidence ≥ 0.8)
+User Query
+  ├─▶ Emergency Detection (Gemini, few-shot classified, runs in parallel)
+  │      → structured {is_emergency, confidence, condition, urgency, reason}
+  │      → alert only if is_emergency AND confidence ≥ 0.80
+  │
+  └─▶ RAG Pipeline
+         → Gemini Embedding of the query
+         → Pinecone Retrieval (top-k medical document chunks, cosine similarity)
+         → Context Assembly (retrieved chunks injected into the prompt)
+         → Gemini Generation → grounded response with source attribution
 ```
 
-The system uses a two-stage pipeline: first retrieve relevant medical documents via vector similarity, then generate a grounded response with the retrieved context injected into the prompt. Emergency detection runs in parallel on every query.
+Emergency detection and document retrieval run as two separate concerns on every query, not one classifier bolted onto the other — a query can be both an emergency *and* answered with retrieved context, or neither, without one path blocking the other.
+
+**Emergency detection is few-shot classified, not keyword-matched.** The prompt includes worked examples ("severe chest pain and difficulty breathing" → emergency/heart attack, "mild headache" → not an emergency) and requires Gemini to return structured JSON — `is_emergency`, a confidence score, the suspected condition, urgency level, and a reason — rather than a bare yes/no. Keyword matching alone misses phrasing like "my chest feels heavy," which is exactly the kind of real-world phrasing a rule list won't anticipate.
+
+**Built to degrade gracefully, not fail outright.** If Pinecone or the embedding call is unavailable, the system falls back to a small curated set of hand-written, source-attributed medical snippets for common queries (e.g. morning sickness, fever in children) instead of returning an error or a hallucinated answer. Similarly, Supabase operations are wrapped so that a database hiccup degrades to session-only memory rather than crashing the conversation. In production the system runs on its primary path — live Gemini embeddings, Pinecone retrieval, and Supabase persistence — but the fallback exists specifically so a flaky third-party API doesn't take the whole assistant down for users who may have no other source of medical guidance.
 
 ## Key Engineering Decisions
 
@@ -45,6 +57,7 @@ The system uses a two-stage pipeline: first retrieve relevant medical documents 
 2. **Confidence-gated emergency detection** — rather than keyword matching (which misses "my chest feels heavy"), the system uses Gemini to classify emergency severity and only triggers alerts above 80% confidence.
 3. **Hausa-first design** — the voice input pipeline supports Hausa natively, not as an afterthought translation layer.
 4. **Supabase for persistence** — lightweight, real-time database that handles chat history without the overhead of a full backend.
+5. **Graceful degradation over hard failure** — retrieval and persistence both have fallback paths, so a third-party outage degrades the experience instead of breaking it entirely. For a health-guidance tool, staying partially available beats going fully offline.
 
 ## Tech Stack
 

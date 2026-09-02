@@ -1,9 +1,9 @@
 ---
 title: "AI-Powered Sentence Completion for Video Game Narratives"
-description: What happens when you train an NLP model on video game scripts and lore? It starts writing like one. Built a sentence completion engine using TF-IDF + Naive Bayes with emotion-aware generation — give it "the hero must" and it'll finish the thought in the right narrative tone. Hand-curated the dataset with emotional annotations and deployed a live Streamlit demo.
+description: What happens when you train an NLP model on video game scripts and lore? It starts writing like one. Built a sentence completion engine using TF-IDF + Naive Bayes with emotion-aware generation — give it "the hero must" and it'll finish the thought in the right narrative tone. Hand-curated the dataset with emotional annotations; a Streamlit interface was scoped but not shipped.
 date: 2025-09-01
-website: https://github.com/walethewave/-AI-Powered-Sentence-Completion
 github: https://github.com/walethewave/-AI-Powered-Sentence-Completion
+architectureDeck: /architecture/projects/ai_powered_sentence_completion/deck.pptx
 tags:
   - label: NLP
   - label: Text Generation
@@ -41,14 +41,14 @@ Video games aren't just entertainment—they're immersive narrative experiences 
 - **Contextual Prediction**: Next-word prediction with 5-word context windows
 - **Creative Generation**: Auto-generates plausible game-style sentences
 - **Emotion Integration**: Emotion-aware text generation for narrative tone control
-- **Real-time Interface**: Interactive Streamlit demo for live sentence completion
+- **Planned Interface**: A Streamlit demo was scoped for real-time sentence completion but not built — the model currently runs from the notebook only
 
 ## Technical Stack
 
 **Core Technologies**: Python, Scikit-learn, NLTK, Pandas, NumPy
 **Visualization**: Matplotlib, Seaborn
 **Development Environment**: Jupyter Notebook
-**Deployment**: Streamlit (interactive demo)
+**Deployment**: Notebook-only — Streamlit was scoped as future work, not shipped
 **NLP Techniques**: TF-IDF, Naive Bayes, Text Generation
 
 ## Model Performance & Results
@@ -74,10 +74,33 @@ This project showcases several advanced AI engineering concepts:
 Unlike using pre-existing datasets, I engineered a specialized corpus with emotional annotations, demonstrating data science expertise and domain knowledge.
 
 ### End-to-End Pipeline
-From raw text collection through model deployment, this project represents complete ownership of the ML lifecycle.
+From raw text collection through model training and generation, this project represents complete ownership of the ML lifecycle.
 
 ### Creative AI Application
 Applying NLP to creative content generation shows understanding of AI's potential beyond traditional analytics.
+
+## Solution Architecture
+
+**Pipeline (single-notebook, no live service):**
+
+```
+Raw game-text corpus
+  → Punctuation stripping + tokenization (NLTK word_tokenize)
+  → Sliding-window dataset construction (5-word context → 6th word target)
+  → TF-IDF vectorization of the context strings
+  → Multinomial Naive Bayes classifier (context vector → next-word class)
+  → Top-5 probability sampling (not greedy) for varied completions
+  → Autoregressive generation: predict → append → slide window → repeat
+```
+
+**Key modeling decisions:**
+
+- **Framed next-word prediction as multi-class classification over the vocabulary**, not a language-model objective — TF-IDF + Naive Bayes is a deliberately lightweight baseline that demonstrates full pipeline ownership (curation → features → model → generation) without needing GPU training infrastructure.
+- **Top-5 sampling instead of greedy argmax** — always taking the single most probable word produces repetitive output ("the and the and..."); sampling among the top 5 trades a little precision for noticeably more human-like variety.
+- **Custom emotion-annotated dataset** — training text was hand-curated from game scripts and lore with emotional labels, laying groundwork for mood-aware generation. The labels exist in the data but aren't yet a model input.
+- **Streamlit interface was scoped, not built** — the README described a real-time demo, but the model runs from the notebook only. Listed here as future work rather than a shipped feature.
+
+**Documented next steps:** swap TF-IDF/Naive Bayes for transformer embeddings for real contextual understanding; extend from single-sentence to paragraph/dialogue generation; wire the emotion labels in as an actual conditioning signal; build the Streamlit interface.
 
 ## Future Enhancements
 
@@ -88,9 +111,8 @@ Applying NLP to creative content generation shows understanding of AI's potentia
 
 ## Key Achievements
 
-✅ **Complete NLP Pipeline**: End-to-end development from data collection to deployment
+✅ **Complete NLP Pipeline**: End-to-end development from data collection to text generation
 ✅ **Custom Dataset Engineering**: Specialized corpus creation with emotional annotations
-✅ **Interactive Demo**: Real-time sentence completion with Streamlit interface
 ✅ **Modular Architecture**: Scalable, well-documented codebase for future enhancement
 ✅ **Creative AI Application**: Demonstrates AI's potential in content generation and storytelling
 

@@ -2,7 +2,6 @@
 title: "Market Basket Analysis & Collaborative Filtering"
 description: Explored what customers buy together and why — using market basket analysis to find purchasing patterns, then item-based collaborative filtering to generate personalized recommendations for the Bronze customer segment. The goal was turning raw transaction logs into "customers who bought X also bought Y" intelligence that a retail team can act on.
 date: 2024-09-01
-website: https://github.com/walethewave/Advanced-Retail-Analytics-Suite-Customer-Segmentation-Strategic-Insights
 github: https://github.com/walethewave/Advanced-Retail-Analytics-Suite-Customer-Segmentation-Strategic-Insights
 tags:
   - label: Python
@@ -12,4 +11,57 @@ tags:
   - label: Scikit-learn
   - label: Jupyter Notebook
 ---
-This project aims to provide a comprehensive exploratory data analysis (EDA) focused on market basket analysis and item-based collaborative filtering. Leveraging a dataset of retail transactions, this analysis seeks to uncover valuable insights into consumer purchasing behaviors and preferences, which can drive strategic business decisions and enhance customer engagement.
+# Market Basket Analysis & Collaborative Filtering
+
+This project runs a UK online retailer's transaction history (806K+ transactions, ~5,900 customers, Dec 2009–Dec 2011, UCI's Online Retail II dataset) through RFM segmentation, K-Means clustering, and two different "what goes with what" techniques — Apriori market basket analysis and item-based collaborative filtering — deliberately scoped to the lowest-value customer tier.
+
+## What It Does
+
+Segments customers by Recency/Frequency/Monetary value, clusters them to validate that segmentation with an independent method, then focuses the recommendation work specifically on the Bronze (lowest-value) segment — the group with the most room to move, rather than re-analyzing the whole customer base at once.
+
+## RFM Segmentation & Clustering (Verified Results)
+
+- **Bronze:** 1,752 customers, avg 16.6 purchases, avg spend £233
+- **Silver:** 2,382 customers, avg 65.0 purchases, avg spend £905
+- **Gold:** 1,744 customers, avg 341.5 purchases, avg spend £5,330 — a ~23x spend gap between Gold and Bronze
+- **K-Means (k=4, selected via elbow method)** clustered on the same RFM features, used to cross-check the RFM tiers with an independent, unsupervised method rather than trusting a single segmentation approach
+
+## Market Basket Analysis: A Real Negative Result
+
+Ran Apriori on the Bronze segment's purchase baskets, then filtered for strong rules (lift ≥ 6, confidence ≥ 0.70). The filtered result was an **empty set** — no product pairs in the Bronze segment met that bar. That's a real, reportable finding, not a failure to hide: it means Bronze customers' purchases don't cluster into a small number of dominant "always bought together" pairs at a strict threshold, which itself is useful — it argues against betting a merchandising strategy on a handful of blockbuster bundles for this segment, and toward either a lower threshold or a different technique (which is exactly why item-based collaborative filtering was tried next).
+
+## Item-Based Collaborative Filtering (Bronze Segment)
+
+Built a product co-occurrence matrix from Bronze-segment invoices, then computed Pearson correlation between products' purchase patterns to recommend items similar to what a customer already bought.
+
+**A real limitation worth naming:** with sparse co-purchase data, many product pairs only overlap on a handful of invoices, which makes Pearson correlation unstable — several results land on exact values like 1.0, -0.5, or -0.577, the tell-tale signature of a correlation computed on very few shared observations rather than a robust signal. This is a legitimate limitation of correlation-based similarity on sparse retail data, not a bug: the technique works, but its confidence is only as good as the amount of co-purchase evidence behind each product pair.
+
+## Solution Architecture
+
+```
+Raw transactions (Online Retail II, 806K+ rows)
+  → Cleaning (drop missing Customer ID, remove cancelled/negative-quantity orders)
+  → Outlier capping (IQR-based clipping on Price)
+  → RFM computation (Recency, Frequency, Monetary per customer)
+      → Quartile-based segmentation → Gold / Silver / Bronze tiers
+  → K-Means clustering (k=4, elbow method) on scaled RFM features
+      → cross-validates the RFM tiers independently
+  → Scope down to Bronze segment specifically
+      → Apriori (min_support=0.03) → association_rules (lift, confidence)
+          → strict threshold (lift≥6, confidence≥0.70) → empty result (real finding)
+      → Item-based collaborative filtering (co-occurrence matrix → Pearson correlation)
+          → per-customer product recommendations
+```
+
+**Key engineering decisions:**
+
+- **Two independent segmentation methods, not one** — RFM (rule-based, quartiles) and K-Means (unsupervised clustering) were both run on the same features. Getting comparable segment structure from two different methods is a basic sanity check that a single method's output isn't an artifact of its own assumptions.
+- **Scoped the recommendation work to one segment, not the whole customer base** — Bronze customers were chosen deliberately as the segment with the most upside (low frequency, low spend, but still active), rather than running market basket analysis across a customer base that mixes fundamentally different buying behaviors.
+- **Reported the empty result instead of loosening the threshold until something appeared** — it would have been easy to lower the lift/confidence bar until *some* rules showed up and present those as "the findings." Keeping the strict threshold and reporting zero qualifying rules is the more honest read of what the data actually supports.
+- **Named the correlation instability rather than presenting the recommendations as more confident than they are** — exact ±1.0/-0.5 correlations on thin data are a known artifact, and calling that out matters for anyone deciding whether to trust a given product recommendation.
+
+## What's Next
+
+- Re-run Apriori on the Bronze segment with a lower confidence/lift threshold to see what weaker-but-real associations exist, rather than only the strict-threshold search
+- Weight or filter the collaborative-filtering correlations by the number of co-occurring invoices, so thin-evidence pairs don't carry the same apparent confidence as well-supported ones
+- Extend the same Bronze-first approach to Silver and Gold segments for comparison

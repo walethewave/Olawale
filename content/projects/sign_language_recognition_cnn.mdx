@@ -1,8 +1,7 @@
 ---
 title: "Sign Language Hand Gesture Recognition with CNN"
-description: Trained a convolutional neural network to classify 25 American Sign Language hand gestures at 99.75% accuracy. Tackled overfitting head-on with dropout layers, data augmentation, and early stopping — then built a Flask web app so anyone can test it with their own images.
+description: Trained a convolutional neural network to classify 25 American Sign Language hand gestures, improving from 98.65% to 99.78% test accuracy by tackling overfitting with dropout, data augmentation, and early stopping. Built a real-time Flask webcam demo, then started (but didn't finish) a browser-based deployment to fix the local-webcam-only limitation.
 date: 2025-01-15
-website: https://github.com/walethewave/Sign-Language-Hand-Gesture-Recognition-Using--CNN
 github: https://github.com/walethewave/Sign-Language-Hand-Gesture-Recognition-Using--CNN
 tags:
   - label: Deep Learning
@@ -33,12 +32,35 @@ The initial model overfit fast. Fixed it three ways:
 3. **Early stopping** — monitors val_loss, stops after 3 epochs without improvement, restores best weights
 
 ### Results
-- **Test accuracy: 99.75%**
-- **Test loss: 0.0134**
-- The augmentation + dropout combo was the difference between a model that memorizes and one that understands
+- **Baseline CNN (no regularization):** 98.65% test accuracy
+- **With dropout + data augmentation:** 99.78% test accuracy, 0.0086 test loss
+- The augmentation + dropout combo was the difference between a model that memorizes and one that understands — and both checkpoints are kept in the repo so the improvement is verifiable, not just claimed
 
 ## Deployment
-Built a Flask web app with HTML templates so users can upload images and get real-time predictions. Saved trained models as `.h5` files (both base and augmented versions). Attempted Vercel deployment for broader access.
+Built a Flask app that opens a webcam feed server-side, runs each frame through the trained CNN, and overlays the predicted letter live — a real-time video stream (MJPEG), not a static upload-and-predict form. Saved both trained models as `.h5` files (base and dropout+augmentation versions).
+
+That local-webcam approach has a real limitation: `cv2.VideoCapture(0)` opens whatever camera is attached to the machine *running the server*, which works for a local demo but can't work as a public multi-user web app — a visitor's browser can't hand its camera to a remote Python process that way. The Vercel deployment attempt was aimed squarely at fixing this: a React frontend using the browser's own `getUserMedia` API to capture the *visitor's* webcam client-side, then POST each frame to a Flask `/predict` endpoint. That attempt is real but unfinished — the backend URL in the frontend code is still a literal placeholder, and `app.py` doesn't yet have the `/predict` route the frontend expects. The architecture direction is right; the deployment isn't wired up end-to-end.
+
+## Solution Architecture
+
+```
+Local demo (working):
+  Server webcam → cv2.VideoCapture(0) → per-frame preprocessing
+    (grayscale → resize 28×28 → normalize) → CNN → predicted letter
+    overlaid on frame → MJPEG stream → browser <img> tag
+
+Public deployment (attempted, unfinished):
+  Visitor's browser webcam → getUserMedia (client-side capture)
+    → canvas frame → base64 JPEG → POST to Flask /predict [not yet implemented]
+    → (would run the same CNN preprocessing + inference server-side)
+    → JSON {prediction} → rendered in the React UI
+```
+
+**Key engineering decisions:**
+
+- **Two model iterations, kept and compared, not just the final one** — the baseline CNN (two conv layers, no regularization) hit 98.65% test accuracy; adding dropout and data augmentation pushed it to 99.78%. Both `.h5` files are kept in the repo, so the actual before/after is verifiable rather than just claimed.
+- **Recognized the local-webcam architecture wouldn't scale to a public deployment** — rather than presenting the Flask/OpenCV demo as "deployed," the project explicitly started a second architecture (browser-side capture + API backend) once the local-only limitation became clear. That direction is correct even though the implementation isn't finished.
+- **Early stopping monitored validation loss, not training accuracy** — stopping on `val_loss` with a 3-epoch patience and restoring the best weights protects against exactly the overfitting the initial model showed, rather than stopping on a metric that keeps improving even as the model memorizes.
 
 ## Why I Built This
 
