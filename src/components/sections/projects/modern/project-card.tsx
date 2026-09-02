@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { GithubIcon, GlobeIcon, InfoIcon } from 'lucide-react';
+import { GithubIcon, GlobeIcon, InfoIcon, PresentationIcon } from 'lucide-react';
 
 import { Project } from '@/types/project';
 
@@ -48,6 +48,7 @@ function ProjectCard({
   website,
   github,
   tags,
+  architectureDeck,
   className
 }: ProjectCardProps) {
   const metrics = projectMetrics[title];
@@ -123,6 +124,24 @@ function ProjectCard({
           </div>
         )}
         <TooltipProvider>
+          {architectureDeck && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="z-[2] rounded-full border bg-muted hover:bg-foreground/10"
+                  asChild
+                >
+                  <a href={architectureDeck} target="_blank" rel="noreferrer" download>
+                    <PresentationIcon />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Solution Architecture Deck</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

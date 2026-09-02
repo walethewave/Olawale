@@ -6,23 +6,6 @@ import ProjectCard from './project-card';
 import Reveal from '@/components/reveal';
 import { project } from '@/app/source';
 
-const confidenceAIProject = {
-  title: 'ConfidenceAI — Live Coaching Platform',
-  description:
-    'Real-time AI confidence coaching with explainable scoring. Not generic motivational text — structured psychological frameworks delivered through Google Gemini with session memory. Pydantic validation ensures consistent, structured output every session.',
-  href: '/projects/confidence_ai_coaching',
-  website: 'https://9punzdhswetzx92taubijy.streamlit.app/',
-  github: 'https://github.com/walethewave/AI-Powered-Confidence-Coaching-App',
-  tags: [
-    { label: 'Google Gemini' },
-    { label: 'Streamlit' },
-    { label: 'Pydantic' },
-    { label: 'Python' },
-    { label: 'Live Deployment' }
-  ],
-  thumbnail: '/images/projects/confidence_ai_coaching/cover.jpg'
-};
-
 function Projects() {
   const projects = [...project.getPages()].sort(
     (a, b) =>
@@ -30,35 +13,17 @@ function Projects() {
       new Date(a.data.date ?? a.file.name).getTime()
   );
 
-  const displayProjects = [
-    ...projects
-      .filter((project) => project.data.title !== confidenceAIProject.title)
-      .slice(0, 2)
-      .map((project) => ({
-        title: project.data.title,
-        description: project.data.description,
-        href: project.url,
-        website: project.data.website,
-        github: project.data.github,
-        tags: project.data.tags,
-        thumbnail:
-          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
-      })),
-    confidenceAIProject,
-    ...projects
-      .filter((project) => project.data.title !== confidenceAIProject.title)
-      .slice(2, 3)
-      .map((project) => ({
-        title: project.data.title,
-        description: project.data.description,
-        href: project.url,
-        website: project.data.website,
-        github: project.data.github,
-        tags: project.data.tags,
-        thumbnail:
-          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
-      }))
-  ];
+  const displayProjects = projects.map((project) => ({
+    title: project.data.title,
+    description: project.data.description,
+    href: project.url,
+    website: project.data.website,
+    github: project.data.github,
+    tags: project.data.tags,
+    architectureDeck: project.data.architectureDeck,
+    thumbnail:
+      project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
+  }));
 
   return (
     <MotionWrap className="w-full py-24 lg:py-32" id="projects">
@@ -93,6 +58,7 @@ function Projects() {
                 github={project.github}
                 key={`project_${index}`}
                 tags={project.tags}
+                architectureDeck={project.architectureDeck}
                 thumbnail={project.thumbnail}
               />
             ))}
