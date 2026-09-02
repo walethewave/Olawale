@@ -20,9 +20,8 @@ export const ContactFormSchema = z.object({
 export type ContactForm = z.infer<typeof ContactFormSchema>;
 
 export const ContactActionSchema = ContactFormSchema.extend({
-  token: z.string().min(1, {
-    message: 'Token is required.'
-  })
+  // Optional: only required when Turnstile is configured (see contactSubmit's middleware).
+  token: z.string().optional()
 });
 
 export type ContactAction = z.infer<typeof ContactActionSchema>;

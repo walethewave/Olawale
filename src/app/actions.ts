@@ -13,6 +13,9 @@ const EMAIL_TO = process.env.EMAIL_TO;
 
 export const contactSubmit = actionClient
   .use(async ({ next, clientInput }) => {
+    // Turnstile is optional: only enforced when both keys are configured.
+    if (!process.env.TURNSTILE_SECRET_KEY) return next();
+
     const data = clientInput as {
       token?: string;
     };

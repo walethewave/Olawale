@@ -47,11 +47,17 @@ export default function ContactForm() {
   const { execute, result, status } = useAction(contactSubmit);
   const [isOpen, setIsOpen] = useState(false);
 
+  const turnstileEnabled = Boolean(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  );
+
   // todo: probably refactor this, setIsOpen is not clean
-  // values: ContactFormType
-  async function onSubmit() {
+  async function onSubmit(values: ContactFormType) {
+    if (!turnstileEnabled) {
+      execute(values);
+      return;
+    }
     setIsOpen(true);
-    // execute(values);
   }
 
   async function onVerify(token?: string) {
@@ -141,7 +147,7 @@ export default function ContactForm() {
           </Button>
         </form>
       </Form>
-      <TurnstileModal open={isOpen} callback={onVerify} />
+      {turnstileEnabled && <TurnstileModal open={isOpen} callback={onVerify} />}
     </div>
   );
 }

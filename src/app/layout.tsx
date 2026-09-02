@@ -1,9 +1,5 @@
 import type { Metadata } from 'next';
-import {
-  Bricolage_Grotesque,
-  Instrument_Sans,
-  Montserrat
-} from 'next/font/google';
+import { Instrument_Sans } from 'next/font/google';
 import '@/styles/globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -14,8 +10,7 @@ import Providers from '@/app/providers';
 
 import { createMetadata } from '@/lib/metadata';
 
-// https://iamsteve.me/blog/the-best-ink-trap-typefaces-for-websites
-const bricolage_grotesque = Bricolage_Grotesque({ subsets: ['latin'] });
+const instrument_sans = Instrument_Sans({ subsets: ['latin'] });
 
 export const metadata = createMetadata({
   title: {
@@ -36,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={bricolage_grotesque.className}>
+      <body className={instrument_sans.className}>
         <Providers>
           <Loader />
           {children}

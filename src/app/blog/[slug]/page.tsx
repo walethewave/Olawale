@@ -32,14 +32,34 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   const page = blog.getPage([slug]);
   if (!page) notFound();
 
+  const ogImage = `/og?title=${encodeURIComponent(page.data.title)}&description=${encodeURIComponent(page.data.description ?? meta.site.description)}`;
+
   return createMetadata({
     title: page.data.title,
     description: page.data.description,
     openGraph: {
       type: 'article',
-      // todo: add custom dynamic og image
       authors: meta.author.name,
-      modifiedTime: new Date(page.data.date ?? page.file.name).toISOString()
+      modifiedTime: new Date(page.data.date ?? page.file.name).toISOString(),
+      images: [
+        {
+          alt: page.data.title,
+          width: 1200,
+          height: 630,
+          url: ogImage,
+          type: 'image/png'
+        }
+      ]
+    },
+    twitter: {
+      images: [
+        {
+          alt: page.data.title,
+          width: 1200,
+          height: 630,
+          url: ogImage
+        }
+      ]
     }
   }) satisfies Metadata;
 }

@@ -21,10 +21,11 @@ export async function GET(req: NextRequest): Promise<Response | ImageResponse> {
       new URL('../../../public/fonts/Inter-SemiBold.ttf', import.meta.url)
     ).then((res) => res.arrayBuffer());
 
-    const { title, description } = {
-      title: meta.author.name,
-      description: meta.site.description
-    };
+    const { searchParams } = new URL(req.url);
+
+    const title = searchParams.get('title') ?? meta.author.name;
+    const description =
+      searchParams.get('description') ?? meta.site.description;
 
     return new ImageResponse(
       (
