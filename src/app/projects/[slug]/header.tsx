@@ -8,6 +8,7 @@ import { ArrowUpRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Project } from '@/types/project';
 import { Badge } from '@/components/ui/badge';
+import ArchitectureDeckLink from '@/components/architecture-deck-link';
 import React from 'react';
 
 const animation = {
@@ -27,7 +28,7 @@ type HeaderProps = {
 
 const Header = (props: HeaderProps) => {
   const {
-    metadata: { title, description, website, github, tags }
+    metadata: { title, description, website, github, tags, architectureDeck }
   } = props;
 
   return (
@@ -68,6 +69,7 @@ const Header = (props: HeaderProps) => {
             <ArrowUpRightIcon className="ml-2 size-5" />
           </Link>
         )}
+        <ArchitectureDeckLink href={architectureDeck} />
       </motion.div>
       <motion.div
         className="mt-2 flex flex-wrap gap-2"

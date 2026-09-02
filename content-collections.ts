@@ -16,6 +16,7 @@ const projects = defineCollection({
       website: z.string().optional(),
       github: z.string().optional(),
       thumbnail: z.string().optional(),
+      architectureDeck: z.string().optional(),
       tags: z
         .array(
           z.object({
@@ -32,6 +33,39 @@ const projects = defineCollection({
 const projectMetas = defineCollection({
   name: 'projectMeta',
   directory: 'content/projects',
+  include: '**/meta.json',
+  parser: 'json',
+  schema: createMetaSchema
+});
+
+const clientWork = defineCollection({
+  name: 'clientWork',
+  directory: 'content/client-work',
+  include: '**/*.mdx',
+  schema: (z) => {
+    const docSchema = createDocSchema(z);
+    return {
+      ...docSchema,
+      industry: z.string().optional(),
+      role: z.string().optional(),
+      thumbnail: z.string().optional(),
+      architectureDeck: z.string().optional(),
+      tags: z
+        .array(
+          z.object({
+            label: z.string()
+          })
+        )
+        .optional(),
+      date: z.string().date().or(z.date()).optional()
+    };
+  },
+  transform: transformMDX
+});
+
+const clientWorkMetas = defineCollection({
+  name: 'clientWorkMeta',
+  directory: 'content/client-work',
   include: '**/meta.json',
   parser: 'json',
   schema: createMetaSchema
@@ -61,5 +95,12 @@ const blogMetas = defineCollection({
 });
 
 export default defineConfig({
-  collections: [projects, projectMetas, blog, blogMetas]
+  collections: [
+    projects,
+    projectMetas,
+    clientWork,
+    clientWorkMetas,
+    blog,
+    blogMetas
+  ]
 });

@@ -4,6 +4,7 @@ export interface Project {
   website?: string;
   github?: string;
   thumbnail?: string;
+  architectureDeck?: string;
   tags?: Array<{ label: string }>;
   // thumbnail: string;
 }
