@@ -1,0 +1,159 @@
+---
+title: "Talvo"
+description: A conversational banking assistant that routes free-text chat into typed
+  financial transactions (transfers, airtime, data, bills, tiered savings) via LLM
+  tool-calling, with a separate retrieval-grounded path for product/FAQ questions.
+  Deployed as a serverless FastAPI service with a discriminated-union response
+  contract that lets one message resolve into multiple transactions at once.
+date: 2024-11-01
+industry: digital / mobile-first banking (fintech)
+role: AI Engineer
+tags:
+  - label: AWS Bedrock (Claude)
+  - label: Tool calling
+  - label: RAG (Pinecone)
+  - label: FastAPI
+  - label: Serverless (Lambda)
+---
+
+# Talvo
+
+A retail banking platform wanted customers to be able to bank by chatting in plain
+language — "send 5k to John," "buy me 1k MTN data," "what's your savings interest
+rate" — instead of navigating transfer/bills/savings screens. The system had to turn
+that chat into real, typed transactions against the bank's core systems, while
+keeping the AI itself powerless to move money without an explicit confirmation step.
+
+## What It Does
+
+A customer's chat message goes to a backend service that decides, per message,
+whether the customer is trying to transact or just asking a question. Transactional
+intents (intrabank transfer, interbank transfer, airtime top-up, data bundles, bill
+payments, tiered-rate savings products, complaints) are extracted into a strict typed
+schema and echoed back to the customer for confirmation before anything executes.
+Non-transactional questions ("what's your interest rate on X," "how do I close my
+account") are answered from a curated knowledge base via retrieval rather than model
+recall, so policy and product answers stay grounded in an approved source instead of
+being improvised. A single message can also resolve into more than one transaction
+(e.g. a transfer plus an airtime purchase) in one pass.
+
+## Solution Architecture
+
+```
+Customer chat message (+ conversation history, + caller-supplied
+customer/account context — identity is established upstream,
+this service does not authenticate the caller itself)
+        │
+        ▼
+FastAPI endpoint (Lambda, via Mangum)
+        │
+        ▼
+Bedrock Converse API (Claude) + a fixed set of tool schemas:
+  bank_transaction_agent / airtime_transaction_agent /
+  bills_payment_agent / savings_agent / generic_response_agent
+        │
+        ├── transactional intent ──────────────┐
+        │                                       ▼
+        │                          Typed extraction validated against a
+        │                          discriminated-union response schema
+        │                          (Pydantic, requestType-tagged; supports
+        │                          a multi_request variant for >1 intent
+        │                          per message)
+        │                                       │
+        │                                       ▼
+        │                          Formatted back to the customer as an
+        │                          explicit "please confirm these details"
+        │                          message — no execution without it
+        │                                       │
+        │                                       ▼
+        │                          Confirmed request → core banking /
+        │                          billing execution path (debit, credit,
+        │                          airtime/data provider call, etc.)
+        │
+        └── informational / FAQ intent ─────────┐
+                                                  ▼
+                                     Query embedded (Titan) → similarity
+                                     search over a curated Q&A corpus
+                                     (Pinecone) → top-k context injected
+                                     into a constrained Claude prompt
+                                                  │
+                                                  ▼
+                                     Answer returned, scoped to retrieved
+                                     context only
+        │
+        ▼
+Response returned to the calling chat surface
+```
+
+Shipped via Docker image, deployed as a Lambda-backed FastAPI service (Mangum as the
+ASGI adapter), with GitHub Actions promoting changes through separate test and
+production deploy pipelines.
+
+**Key engineering decisions:**
+
+- **Hand-rolled Bedrock tool-calling instead of MCP.** The system has exactly one
+  consuming client (the bank's chat surface), so a standardized multi-client tool
+  protocol would have added indirection without buying anything — Bedrock's native
+  `toolConfig` schemas gave structured, validated extraction directly. This would be
+  the wrong call the moment a second AI surface (voice, internal ops tooling) needed
+  to share the same "do a transfer / buy airtime" tools.
+- **A confirmation step between extraction and execution, always.** The model's
+  tool-call output is never executed directly — it's formatted into a "please
+  confirm these details" message shown to the customer, and only a confirmed request
+  reaches the execution path. The alternative (execute on first extraction) is faster
+  per turn but means a misheard amount or wrong receiver silently moves real money;
+  for a banking flow that tradeoff wasn't acceptable even with the extra turn it costs.
+- **A discriminated-union response contract with a `multi_request` type**, rather
+  than forcing one intent per user turn. Real chat messages routinely bundle intents
+  ("send this and also buy me airtime"), and handling that in the schema — instead of
+  telling users to split requests — meant the router and validation logic had to
+  handle a list of typed transactions per turn, not just one.
+- **RAG kept structurally separate from the transactional tool-calling path.**
+  FAQ/policy questions go through their own embedding + retrieval + constrained-prompt
+  pipeline (Pinecone + Titan embeddings) against a curated Q&A corpus, rather than
+  being folded into the same prompt and tool schema as transactions. This kept the
+  transactional prompt focused (less surface area for the model to confuse "extract a
+  transaction" with "answer a policy question") and kept factual answers grounded in
+  an approved corpus instead of the model's own recall.
+- **De-structuring the system prompt to stop instruction leakage**, discovered in
+  production: a heavily numbered, step-by-step "Request flow 1 / 2 / 3..." system
+  prompt caused the model to echo that internal scaffolding back to customers inside
+  the actual chat reply. The fix was rewriting the instructions in less
+  request-flow-numbered language rather than adding output filtering after the fact —
+  cheaper and it addressed the actual cause instead of masking the symptom.
+
+## Results
+
+No automated evaluation harness or usage analytics exist in the codebase, so I don't
+have hard numbers (accuracy, latency, transaction volume) to report here, and I'm not
+going to manufacture any. What I can say concretely: the service is deployed to
+production infrastructure (Docker + Lambda, with separate test/prod GitHub Actions
+pipelines) and has been iterated on through multiple real-usage bug fixes — savings
+calculation errors, an intrabank/interbank response-validation bug, a data-purchase
+flow rework, and the prompt-leakage fix above — which is evidence it was carrying
+real traffic and getting real feedback, not just sitting as a demo.
+
+## What's Next / Known Limitations
+
+- **No regression coverage on the prompts.** Every fix in the history (savings math,
+  prompt leakage, intent-validation bugs) was a manual find-and-patch. There's no test
+  suite that would catch a prompt or schema change silently breaking a working
+  transaction type — the natural next investment given how much of this system's
+  correctness lives in prompt text rather than code.
+- **No usage or quality telemetry.** There's no logging/analytics layer capturing
+  extraction accuracy, confirmation-abandonment rate, or latency, so "is this working
+  well" is currently answered by manual QA and user-reported bugs rather than measured
+  data. I'd want that instrumented before calling this fully mature.
+- **The service trusts caller-supplied identity.** Account/customer context arrives
+  in the request payload rather than being independently authenticated by this
+  service — which is a reasonable boundary if the calling app is trusted and does its
+  own auth, but it's a question any security reviewer would immediately ask about, and
+  I don't have visibility into how hard that upstream boundary is.
+- **Confirmation is conversational, not a hard auth factor.** The "please confirm"
+  step prevents accidental execution from a misread message, but it isn't the same
+  guarantee as a PIN/OTP step on money movement — worth flagging as the next hardening
+  layer rather than treating the chat confirmation as sufficient on its own.
+- **Environment/branch sprawl.** Development happened across several long-lived
+  branches (including at least one Oracle-specific variant) feeding into production —
+  a sign of real integration complexity with the bank's core systems, but also
+  something I'd want consolidated rather than carried forward indefinitely.

@@ -1,0 +1,133 @@
+---
+title: "CareClerk Medical Copilot"
+description: >
+  An AI-assisted clinical documentation system for geriatric home-visit
+  consultations. Audio recorded at the bedside is chunked, transcribed with
+  speaker diarisation, and processed through a two-model AWS Bedrock pipeline
+  to produce a structured 16-section clinical clerking report in under 35
+  seconds. A persistent conversational query engine lets doctors interrogate
+  any patient's full history in natural language.
+date: 2026-04-01
+industry: Elder care / Geriatric medicine
+role: Solo AI Engineer (contract)
+architectureDeck: /architecture/client-work/careclerk/deck.pptx
+tags:
+  - label: AWS Bedrock
+  - label: Claude Sonnet
+  - label: Amazon Nova Pro
+  - label: AWS Transcribe
+  - label: AgentCore Memory
+  - label: AWS Lambda (container)
+  - label: FastAPI
+  - label: Python
+  - label: MySQL
+  - label: Amazon S3
+---
+
+# CareClerk Medical Copilot
+
+Doctors conducting home visits for elderly patients in a geriatric care programme faced a documentation bottleneck: structured clinical notes had to be written up manually after each consultation, with no tooling to assist recall or enforce the standard clerking format. The client needed a system that could capture the consultation as it happened, produce a draft clinical record automatically, and let staff query any patient's history without searching through raw records.
+
+## What It Does
+
+1. **Records the consultation** — A browser-based frontend captures audio in 50-second WebM chunks while the doctor and patient are speaking.
+2. **Transcribes with speaker labels** — Each chunk is sent to AWS Transcribe with two-speaker diarisation (Doctor / Patient).
+3. **Extracts clinical data per chunk** — Amazon Nova Pro reads each transcript chunk and pulls structured clinical bullets in real time.
+4. **Generates a full clerking report at end-of-session** — Claude Sonnet 4.6 synthesises all extractions plus the patient's MySQL records into a 10- or 16-section clerking document (follow-up vs. first-visit template detected automatically).
+5. **Serves a persistent query engine** — Doctors ask natural-language questions about any patient across any session. Answers are grounded in S3 transcripts, S3 reports, MySQL records, and AWS AgentCore Memory.
+6. **Stores approved reports back to MySQL** — Once a doctor approves the draft, a background thread extracts structured JSON via Bedrock and writes it to the appointments table.
+
+## Solution Architecture
+
+```
+Browser (HTML/CSS/JS — Vercel)
+│
+│  50-second WebM audio chunks
+▼
+S3 — streaming bucket
+│     sessions/{session_id}/audio/{chunk}.webm
+│
+│  Lambda triggered on audio upload
+▼
+AWS Transcribe  (speaker diarisation, 2 speakers)
+│     transcribe-outputs/{session_id}/{chunk}.json → S3
+│
+│  S3 ObjectCreated trigger on transcribe-outputs/*.json
+▼
+Lambda  (FastAPI / Mangum — Docker on ECR, 1024 MB, us-east-1)
+│
+├── Amazon Nova Pro  (amazon.nova-pro-v1:0)
+│     Per-chunk clinical extraction → extractions/{chunk}.txt → S3
+│     Merged incrementally into full_extraction.txt
+│
+├── full_transcript.txt  (merged on every chunk)
+│
+│  On /recording/stop
+▼
+Claude Sonnet 4.6  (us.anthropic.claude-sonnet-4-6)
+│   Input: full_extraction.txt + MySQL patient context
+│   Output: 10- or 16-section clerking report → S3 + MySQL draft
+│
+└── /query  and  /patient/summary  endpoints
+      Claude Sonnet 4.5  (us.anthropic.claude-sonnet-4-5-20250929-v1:0)
+      Context: S3 transcript + S3 report + MySQL + AgentCore Memory
+      AgentCore: short-term (30-day TTL) + long-term semantic search
+
+MySQL  (client-hosted)
+  patients, medical_histories, appointments (last 10 DESC)
+
+S3 — processing bucket
+  sessions/{session_id}/
+    metadata.json, full_transcript.txt, full_extraction.txt,
+    transcripts/000N.txt, extractions/000N.txt,
+    patient_context.json, report.txt
+```
+
+**Key engineering decisions:**
+
+- **S3 ObjectCreated trigger instead of EventBridge polling** — Transcribe job completion is signalled by the output JSON appearing in S3. An S3 trigger fires immediately on that event with no configurable delay and no additional infrastructure to maintain. The trigger is scoped to `transcribe-outputs/*.json` so no other write path can accidentally invoke the handler. EventBridge polling would have introduced a configurable wait interval with no guaranteed upper bound.
+
+- **Two-model pipeline: Nova Pro per chunk, Claude Sonnet at end-of-session** — Running Claude Sonnet on every 50-second audio chunk would have been approximately 8-10× more expensive and slower at extraction granularity with no quality benefit. Nova Pro extracts structured clinical bullets cheaply (~1s per chunk). Claude Sonnet only runs once at end-of-session, where its instruction-following and long-context reasoning produce a coherent structured document from accumulated extractions. The two models use different APIs (`invoke_model` vs `converse`) and this is encapsulated in a single `bedrock.py` module.
+
+- **Separate `BEDROCK_QUERY_MODEL_ID` config variable for the query engine** — Query latency with Claude Sonnet 4.6 was measured at ~15 seconds end-to-end. Switching the query handler specifically to Sonnet 4.5 reduced warm query latency to 4-6 seconds. Both models share the same Anthropic message format so no prompt changes were required. Reports and suggestions continue using Sonnet 4.6 where the quality difference justifies the latency. The separation is a single env-var override rather than a code branch, so it can be changed without a redeploy.
+
+- **AWS AgentCore Memory instead of session-scoped state** — The query engine needs to support follow-up questions without requiring the frontend to re-send full conversation history on every call. AgentCore provides managed short-term memory per actor/session (30-day TTL) and long-term semantic retrieval across all past Q&A. The alternative — maintaining conversation history in a database or in the request payload — would have required custom state management and a much larger per-request payload to Bedrock.
+
+- **Lambda deployed as a container image (Docker/ECR), not a ZIP package** — The dependency set (FastAPI, Mangum, PyMySQL, PyYAML, bedrock-agentcore, boto3) exceeds the 50 MB Lambda ZIP limit. Container images support up to 10 GB. Build must specify `--platform linux/amd64 --provenance=false`: the default Mac ARM BuildKit produces an OCI manifest list that Lambda rejects at deploy time with `InvalidParameterValueException`.
+
+- **Lambda memory raised from 128 MB to 1024 MB** — CloudWatch confirmed the function was using 111 MB out of 128 MB (86% utilised) under normal load. Lambda allocates CPU proportional to memory; the upgrade provides 8× more CPU, reduces cold start duration, and eliminates OOM risk for sessions with large patient contexts. At current usage volume both configurations fall within the AWS Lambda free tier (400,000 GB-seconds/month).
+
+## Results
+
+The following are directly measured from CloudWatch logs and live endpoint timing during production validation:
+
+| Metric | Value |
+|---|---|
+| Warm query latency (2nd+ question in session) | 4–6 seconds |
+| First query in session (AgentCore conversation init) | ~10 seconds |
+| Report generation (full 16-section clerking) | 25–32 seconds |
+| Lambda cold start (1024 MB) | ~1–2 seconds init |
+| Lambda memory utilisation at 1024 MB | 111 MB / 1024 MB |
+| Production errors / crashes since deployment | 0 |
+
+**Transcription and report quality** — The system correctly captured detailed clinical narratives from real patient sessions including medication names, symptom timelines, pain scores, and goals-of-care discussions. No systematic accuracy benchmark was run; qualitative review by the engineering team confirmed reports were structurally complete and clinically coherent.
+
+**Query answer grounding** — The query engine correctly attributes answers to named sources (S3 transcript, S3 report, AgentCore memory, MySQL cache) and surfaces data discrepancies rather than silently merging conflicting records. In one confirmed case the system correctly flagged a mismatch between a session transcript and the patient profile pulled from MySQL, preventing a clinically incorrect report from being generated without a flag.
+
+Hard numbers on documentation time saved, clinical adoption rate, or error reduction do not exist at time of writing. The system has been deployed and validated against real patient data; production adoption by the clinical team is pending.
+
+## What's Next / Known Limitations
+
+**Patient ID validation gap** — The system trusts the `patient_id` value sent by the frontend with no cross-validation against the session audio. One confirmed real-world instance: a session was recorded against an incorrect patient ID, causing the report to mix the transcript of one patient with the MySQL records of another. The system detected and flagged the discrepancy in the output, but the root cause is an absent validation layer. A lightweight check at `/recording/start` comparing the MySQL patient name against any spoken name in the first transcript chunk would catch most cases.
+
+**No automated test suite** — There are no unit or integration tests. All validation was done manually against live AWS infrastructure. Any refactor to the Bedrock prompt chain or S3 key conventions carries regression risk with no safety net.
+
+**Fastest available query model is Sonnet 4.5, not Haiku** — Claude Haiku is listed in the deployment account's Bedrock model catalogue but returns `AccessDeniedException`. Enabling it would likely bring simple factual queries below 3 seconds.
+
+**CORS is currently wildcard** — Acceptable for a private pilot but must be restricted to the specific frontend deployment URL before broader rollout.
+
+**Lambda cold starts for Bedrock-heavy calls remain ~10-12 seconds** — The bottleneck is network I/O to AgentCore and Bedrock, not CPU. Raising memory further has diminishing returns. Provisioned concurrency would eliminate cold starts but adds fixed monthly cost not yet justified at current usage scale.
+
+**MySQL connectivity is a silent single point of failure** — If the network path to the MySQL host is unavailable at session start, the system proceeds without patient context (graceful degradation), but the generated report will contain no historical background. There is no alerting on this condition.
+
+**Advance care directive workflow is documentation-only** — The system captures and documents patient preferences (e.g. Do-Not-Intubate wishes) from consultation audio into the clerking report. No structured workflow exists to convert this into a formal signed directive or propagate it across care settings — that step remains fully manual.

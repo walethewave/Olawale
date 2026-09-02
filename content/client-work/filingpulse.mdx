@@ -1,0 +1,164 @@
+---
+title: "FilingPulse"
+description: An event-driven AWS pipeline that watches a public disclosure
+  feed for new company filings, uses an LLM to turn dense financial PDFs into
+  structured plain-text summaries for retail readers, and delivers them to a
+  downstream notification system on a fixed schedule with no manual review
+  step in the loop.
+date: 2026-07-01
+industry: Capital markets technology / fintech (regulatory disclosure automation)
+role: Solo AI Engineer
+tags:
+  - label: AWS Lambda
+  - label: Amazon Bedrock (Claude)
+  - label: Event-driven architecture
+  - label: Python
+  - label: LLM prompt engineering
+---
+
+# FilingPulse
+
+A public markets platform needed retail users to learn about a listed company's
+financial disclosures — quarterly results, earnings forecasts — without relying
+on someone manually reading and summarizing dense filing PDFs as they were
+published. The system that resulted from this engagement discovers new filings
+automatically, produces a structured summary in plain language, and delivers
+it to the platform's own notification backend, unattended.
+
+## What It Does
+
+Twice a day, the system polls a public disclosure feed for newly published
+company filings. It filters that feed down to documents that are actually
+financial in nature (quarterly results, earnings forecasts, and relevant
+items buried in a noisier catch-all category), skips anything already
+processed, and for each new one: downloads the source PDF, archives it,
+extracts its text, and sends that text to an LLM with instructions to produce
+a structured, plain-text summary — performance, financial position, and any
+red flags a retail reader should know about. That summary is then POSTed to
+the platform's internal backend, which owns actually notifying end users.
+
+Each filing is processed independently and in parallel — a failure or an
+unusual document on one filing never blocks or delays any other.
+
+## Solution Architecture
+
+```
+Public Disclosure Feed (external API)
+        │  polled on a fixed schedule (twice daily)
+        ▼
+Discovery Function (serverless)
+  - filters by document category: an explicit allow-list plus a
+    keyword sub-filter against a noisier catch-all category
+  - checks a dedup store; skips anything already processed
+        │  new + relevant items only, one message each
+        ▼
+Message Queue (fan-out, 1 message per document, DLQ after 3 failures)
+        │  each message triggers an isolated function invocation
+        ▼
+Processing Function (serverless, one invocation per document)
+  1. download the source PDF
+  2. archive PDF + metadata to object storage
+  3. extract PDF text (not raw PDF bytes — see decisions below)
+  4. LLM summarization → structured plain-text output
+  5. deterministic post-processing: strip residual markdown,
+     enforce real paragraph breaks between sections
+  6. POST the summary to the downstream notification backend
+  7. mark the document processed (dedup store)
+        │  on failure: automatic retry, then dead-letter queue
+        ▼
+Downstream Notification Backend (external system, out of scope)
+```
+
+**Key engineering decisions:**
+
+- **Extract PDF text before sending it to the LLM, instead of passing raw PDF
+  bytes.** The obvious approach — hand the model provider's document API the
+  raw file — hit two real production failures on genuinely valid filings: a
+  hard page-count ceiling on the provider's native PDF parser, and outright
+  rejection of PDFs with minor structural corruption that a permissive PDF
+  library reads without complaint. Extracting text first sidesteps both,
+  at the cost of failing cleanly (rather than partially) on scanned,
+  image-only PDFs with no embedded text layer at all.
+
+- **Deterministic regex cleanup after the LLM call, not just prompt
+  instructions, for output formatting.** The system prompt explicitly asked
+  for plain text with no markdown and clear section breaks. In production,
+  the model still occasionally left markdown artifacts in, or ran sections
+  together with no visual separation — instruction-following on formatting
+  is probabilistic, not guaranteed. Moving formatting enforcement into a
+  small deterministic post-processing step made the output format a
+  guarantee instead of a hope, independent of what the model actually
+  returned that day.
+
+- **Type-set matching plus a keyword sub-filter, instead of trusting the
+  upstream source's own category field.** The feed's own categorization was
+  inconsistent — whitespace variants of the same label were treated as
+  distinct values by a naive check, and one catch-all category mixed
+  genuinely relevant financial announcements with unrelated administrative
+  notices. The filter was verified against live data, narrowed once to cut
+  noise, and — after live verification showed the narrow version was
+  silently dropping real financial content — widened again with keyword
+  matching on the mixed category. Verifying against live data both times,
+  not assumptions, is what caught the regression before it became routine.
+
+- **Unique image tag per deploy, instead of a fixed tag.** A code-only fix
+  was pushed and the deploy pipeline reported success, but the running
+  function hadn't actually changed. The infrastructure-as-code tooling only
+  detects a change when a resource's declared property changes — a fixed
+  image reference never looks different to it, even when a new image was
+  genuinely pushed behind that tag. The fix was tagging every build with a
+  unique identifier so every deploy is guaranteed to register as a real
+  change, not something that can silently no-op again.
+
+- **Removed a human-in-the-loop review step in favor of direct automated
+  delivery.** Earlier in the engagement, every AI-generated summary went to
+  a human reviewer for approval before reaching users. That step was
+  deliberately removed to cut end-to-end latency and operational load. This
+  was an explicit, discussed trade, not a default: it means AI-generated
+  financial summaries now reach the downstream system without a human
+  checking them first.
+
+## Results
+
+No hard adoption or business-outcome numbers are available to me — end-user
+engagement with delivered notifications is owned and measured by the
+downstream platform team, outside this system's boundary.
+
+What I can state and defend directly:
+
+- Spot-checked AI-generated summaries against their source filings by hand,
+  line by line, including one case where a multi-figure equity reconciliation
+  in the summary (opening balance, minus loss, minus dividend, minus a
+  prior-period adjustment) matched the filing's reported closing balance
+  exactly — evidence the model was reading and reasoning over the actual
+  document, not producing plausible-sounding text.
+- Diagnosed and fixed two separate production-blocking defects that only
+  surfaced after real filings hit them in production (the PDF page-count
+  ceiling, and the silent no-op deploy bug above), with both fixes verified
+  against the exact real-world inputs that originally triggered them.
+- The pipeline runs unattended on a fixed twice-daily schedule with no manual
+  triggering, confirmed by direct inspection of automated production runs
+  across multiple days, including runs that correctly found zero new filings
+  and took no action.
+
+## What's Next / Known Limitations
+
+- **No OCR fallback.** Scanned, image-only PDFs with no embedded text layer
+  fail cleanly today (a clear error, no partial or garbled summary) but
+  aren't summarized at all. Closing this gap would mean adding an OCR step
+  for that specific document shape.
+- **The document classifier is a verified heuristic, not a guarantee.** It
+  was checked against live data at a point in time; if the upstream source
+  changes its own categorization conventions without notice, the filter
+  could silently start missing relevant filings again the same way it did
+  once before.
+- **No automated alerting on repeated processing failures.** Documents that
+  exhaust their retries land in a dead-letter queue with no proactive
+  notification — currently requires someone to check logs to notice.
+- **No human review before delivery.** This was a deliberate trade for speed,
+  but it means there's currently no safety check on AI-generated financial
+  content before it reaches the downstream notification system.
+- **Infrastructure migration was still settling** as of the last update —
+  legacy cloud resources from an earlier environment were deliberately
+  deactivated rather than fully decommissioned, as a rollback margin during
+  the transition.

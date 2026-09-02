@@ -1,0 +1,198 @@
+---
+title: "Corivo"
+description: A multi-agent WhatsApp support assistant for a consumer fintech
+  asset-financing platform, combining LLM-based intent routing, retrieval-grounded
+  product and support agents, and a bounded human-escalation policy — deployed as
+  a serverless system on AWS Lambda with a decoupled catalog-ingestion pipeline.
+date: 2026-03-01
+industry: consumer fintech (asset financing / layaway-style commerce)
+role: AI/Backend Engineer
+tags:
+  - label: Multi-Agent Orchestration
+  - label: RAG / pgvector
+  - label: Prompt Engineering
+  - label: AWS Lambda
+  - label: FastAPI
+---
+
+# Corivo
+
+Corivo is the customer-support layer behind a consumer fintech platform that sells
+everyday household items on a layaway-style financing plan, reachable entirely
+through a WhatsApp-based chat inbox. Before it existed, every product question,
+policy explanation, and order-status check went to a small human support team,
+which meant slow replies outside business hours and a hard ceiling on how many
+customers could be served at once.
+
+## What It Does
+
+Corivo reads every inbound customer message, works out what the customer actually
+wants (which can be more than one thing in a single message — a greeting plus a
+product question plus a policy question), and routes each part to a purpose-built
+agent. Agents answer only from retrieved, live data — a product catalog and a
+support knowledge base — and hand the conversation to a human agent, with a
+written summary, whenever they're not confident or the topic is sensitive
+(refunds, fraud, payment disputes). A separate pipeline keeps the product catalog
+and support articles embedded and searchable so the answers stay current as the
+business's inventory and policies change.
+
+## Solution Architecture
+
+```
+Customer (WhatsApp)
+        │
+        ▼
+Third-party support inbox  ── inbound message webhook ──►  FastAPI webhook endpoint
+                                                                     │
+                                                                     ▼
+                                            Conversation memory (Redis, last ~10
+                                            turns, 30-minute TTL)
+                                                                     │
+                                                                     ▼
+                                            Intent Router (single LLM call,
+                                            chain-of-thought prompt) →
+                                            ordered list of {route, reasoning}
+                                                                     │
+                     ┌───────────────────────┬───────────────────────┬───────────────────────┐
+                     ▼                       ▼                       ▼                       ▼
+              Conversation Agent       Product Agent            Support Agent          Escalation Agent
+              (acknowledge, keep       (RAG over product        (RAG over support      (writes a handoff
+              conversation moving —    catalog; hard rule:      knowledge base;        summary, posts a
+              runs first, always)      never states price/      confidence-scored;     private note to the
+                                       stock, redirects to       max 3 clarification    human queue, short-
+                                       the storefront)           turns before escalate) circuits other agents)
+                     │                       │                       │                       │
+                     └───────────┬───────────┴───────────┬───────────┘                       │
+                                 ▼                       ▼                                    │
+                          Output formatter (WhatsApp-safe text cleanup,                        │
+                          numbered lists, link/image extraction)                               │
+                                 │                                                             │
+                                 └─────────────────────────┬───────────────────────────────────┘
+                                                             ▼
+                                              Reply posted back to support inbox
+                                              (text + product images + private
+                                              agent-facing notes)
+
+Independent ingestion path (keeps retrieval data current):
+
+Catalog / knowledge-base source data
+        │  POST to sync endpoint
+        ▼
+FastAPI ingestion endpoint  ──►  SQS queue  ──►  Lambda worker
+                                                     │
+                                                     ├─ LLM-generated item description
+                                                     ├─ text embedding (512-dim)
+                                                     └─ upsert into Postgres
+                                                        (pgvector, IVFFlat cosine index)
+
+Deployment substrate: Docker image → ECR → single Lambda function with a dual-mode
+handler (routes on event source: API Gateway HTTP request vs. SQS trigger),
+VPC-isolated, deployed via OIDC-authenticated CI/CD (no long-lived AWS keys) with
+a custom least-privilege IAM policy and full CloudTrail audit logging — required
+because this runs inside a client-owned AWS account under a consulting
+engagement, not the vendor's own infrastructure.
+```
+
+**Key engineering decisions:**
+
+- **Ordered, concurrent multi-intent routing instead of one message → one reply.**
+  The intent router returns an *array* of routes with a hard rule that the
+  conversational acknowledgment agent always runs first, and every route in the
+  array executes concurrently via `asyncio.gather`. The obvious alternative —
+  handle one intent per message, sequentially — meant a customer asking "hi, do
+  you have iPhones, and how do I repay?" would wait through three sequential LLM
+  round-trips before getting anything back. The trade-off is real: JSON-array
+  parsing from an LLM is more failure-prone than a single object, and running
+  agents concurrently meant adding a completion-tracker with a lock so reply
+  ordering (and the WhatsApp "typing…" indicator) still made sense to the user
+  even though the agents finished out of order.
+
+- **Hard grounding constraints on the product agent, including a blanket ban on
+  ever stating a price.** The product agent is only allowed to describe items
+  that come back from the live vector search result set — never to invent a
+  name, spec, or availability claim — and is explicitly forbidden from
+  mentioning price, cost, or currency under any circumstance, redirecting those
+  questions to the storefront instead. In a financed-purchase flow, a
+  hallucinated price or a false "in stock" claim isn't just an annoying wrong
+  answer, it's a business/compliance problem. The trade-off is a deliberately
+  worse chat experience for price questions — the bot refuses to help and sends
+  a link — in exchange for a failure mode that's safe rather than merely
+  plausible-sounding.
+
+- **A deterministic, rule-based escalation policy instead of an open-ended
+  conversation loop.** Every specialist agent returns a numeric confidence score
+  and a destination ("continue" or "human"), with a hard cap of three
+  clarification turns before automatic handoff, rather than letting the model
+  decide conversationally when to give up. This makes the failure mode
+  predictable and auditable in production — you can point to exactly why a
+  conversation escalated. The honest trade-off, named below under limitations,
+  is that the thresholds (confidence bands, the "3 clarifications" cap) are
+  hand-tuned constants, not learned or backed by a systematic evaluation set.
+
+- **Retrieval on the existing Postgres instance (pgvector) rather than a
+  dedicated vector database.** The ingestion pipeline already had to write
+  product and knowledge-base rows to Postgres for other reasons, so adding a
+  `VECTOR` column and an IVFFlat cosine-similarity index kept the system to one
+  stateful datastore instead of two. The trade-off is that IVFFlat's
+  approximate search needs a manually tuned `probes` setting and doesn't scale
+  as gracefully as a purpose-built ANN index would at a much larger catalog
+  size — an acceptable trade for a catalog in the thousands of items, not
+  millions.
+
+- **Decoupling catalog/knowledge-base ingestion from the request path via SQS,
+  instead of processing syncs synchronously inside the API.** Bulk syncing
+  calls an LLM once per item to generate a description, plus an embedding call
+  per item — far too slow to run inside a single synchronous HTTP request
+  without hitting Lambda/API Gateway timeouts on anything but a tiny batch. The
+  sync endpoint instead enqueues to SQS and returns immediately with a task ID;
+  a second Lambda entry point (triggered by the queue) does the actual work and
+  writes progress to a task-status table. The trade-off is eventual consistency
+  — a catalog update takes time to land — in exchange for an API that never
+  times out and ingestion that's resumable and traceable per job.
+
+## Results
+
+The system is deployed and live, handling real customer conversations end to end
+on WhatsApp: intent routing into concurrent specialist agents, retrieval-grounded
+product and support answers, image attachments for product replies, and
+rule-based escalation to a human queue with an auto-generated handoff summary.
+
+I don't have formal, instrumented KPIs (a deflection-rate dashboard, measured
+CSAT, time-to-resolution) to report here — that measurement layer wasn't part of
+what shipped, and I'd rather say that plainly than attach a number I can't stand
+behind in a follow-up conversation. What I can defend concretely is the system's
+behavior: it correctly declines to answer with anything not present in the
+retrieved product/knowledge-base context, it never emits pricing information
+from the product agent, and it deterministically hands off after three failed
+clarification attempts rather than looping or guessing.
+
+## What's Next / Known Limitations
+
+- **No systematic prompt evaluation.** The agent prompts (roughly 1,400 lines
+  combined, across six roles) are tuned by hand against example conversations,
+  not against a golden test set with regression checks. A prompt change today
+  has no automated signal for whether it silently broke a different intent
+  path — the next iteration this project needs is an offline eval harness with
+  representative conversation fixtures.
+- **Escalation and confidence thresholds are hand-tuned constants.** The
+  confidence bands (e.g., 0.9–1.0 vs. 0.4–0.6) and the "3 clarifications" cap
+  work well against the cases they were designed around, but they were set by
+  judgment, not calibrated against labeled outcome data. Worth revisiting once
+  there's enough real conversation history to fit them properly.
+- **Conversation memory is short and stateless across sessions.** History is
+  capped at the last ~10 turns with a 30-minute TTL in Redis; a customer who
+  returns after a break starts from zero context. There's no longer-lived,
+  cross-session customer profile informing responses.
+- **Retrieval has no re-ranking step.** Both the product and knowledge-base
+  search paths return raw top-k cosine-similarity hits from an approximate
+  (IVFFlat) index with no second-pass re-ranker, so relevance quality is capped
+  by how well a single embedding call captures the query's intent.
+- **A couple of ingestion endpoints still carry a commented-out fallback code
+  path** (an inline, in-process processing branch alongside the SQS-queued
+  path) left over from an earlier iteration before the async pipeline was
+  finalized — harmless, but due for cleanup.
+- **JSON parsing off raw LLM output relies on a regex-based cleanup pass**
+  (stripping smart quotes, trailing commas, control characters) rather than
+  structured/constrained output generation. It works, but it's a safety net
+  around a fundamentally best-effort contract with the model, and a stricter
+  structured-output mode would remove a class of silent failures.

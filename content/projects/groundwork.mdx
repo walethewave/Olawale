@@ -1,0 +1,111 @@
+---
+title: "Groundwork — AI Solution Architecture Advisor"
+description: An interview-driven architecture advisor that refuses to synthesize a recommendation until a structured elicitation process has gathered enough about real constraints, then grounds its answer in a curated corpus of real technical books — not the model's own pretrained knowledge — with citations back to specific source material. Built solo in two weeks; deployed on real, publicly reachable infrastructure.
+date: 2026-08-21
+github: https://github.com/walethewave/groundwork-advisor
+tags:
+  - label: RAG
+  - label: AWS Bedrock
+  - label: Pinecone
+  - label: FastAPI
+  - label: Next.js
+  - label: Solution Architecture
+  - label: Tool Calling
+---
+
+# Groundwork — AI Solution Architecture Advisor
+
+Generic architecture advice — from a search engine, a generic LLM chat, or a human skimming Stack Overflow — answers immediately, without knowing the real constraints of the system being built: scale, latency budget, cost sensitivity, team experience, compliance requirements. That's exactly backwards from how a senior architect actually works, who interrogates the problem before proposing a solution. Groundwork was built to work the second way.
+
+## What It Does
+
+Groundwork is an interview-driven architecture advisor: it refuses to synthesize a recommendation until a structured elicitation process has gathered enough about the actual constraints, then grounds its answer in a curated corpus of real technical books — not the model's own generic pretrained knowledge — with citations back to specific source material. A secondary product in the same codebase (RAG-based document Q&A over uploaded documents) shares the same layered backend and infrastructure, proving the architecture generalizes beyond one use case.
+
+## Solution Architecture
+
+```
+User answers questions
+        │
+        ▼
+┌─────────────────────────┐
+│  Elicitation             │  Deterministic floor (min turns, min fields
+│  state machine            │  populated) + LLM judgment — the LLM can add
+│  (Bedrock Claude Haiku)   │  friction (one more question) but can never
+└──────────┬────────────────┘  bypass the floor or exceed a hard turn ceiling.
+           │ once "ready_for_synthesis"
+           ▼
+┌─────────────────────────┐
+│  Query planning           │  One LLM call expands the literal stated
+│  (Bedrock Claude Haiku)   │  requirements into 2-4 search queries — including
+└──────────┬────────────────┘  patterns the requirements imply but never name
+           │                    (e.g. "streaming" for an unstated real-time need).
+           ▼
+┌─────────────────────────┐
+│  Drift filter             │  Each generated query is embedded (Bedrock Titan V2)
+│  (embedding similarity)   │  and compared to the literal query's embedding —
+└──────────┬────────────────┘  anything below a calibrated cosine-similarity
+           │                    threshold is dropped, falling back to the literal
+           │                    query alone if nothing survives.
+           ▼
+┌─────────────────────────┐
+│  Retrieval                │  One query per accepted search string, run against
+│  (Pinecone, domain-        │  a domain-tagged single vector index. Thin/weak
+│   filtered)                │  domain-filtered results automatically widen to an
+└──────────┬────────────────┘  unfiltered search rather than surface "no matches."
+           │ merge + dedupe by chunk id, cap pool size
+           ▼
+┌─────────────────────────┐
+│  Rerank                   │  Scored against the ORIGINAL literal query (not the
+│  (Bedrock Claude Haiku)   │  expanded ones) — expansion widens what's found,
+└──────────┬────────────────┘  rerank keeps the final answer anchored to what
+           │                    was actually said.
+           ▼
+┌─────────────────────────┐
+│  Synthesis                │  Structured output: recommendation, reasoning,
+│  (Bedrock Claude Haiku)   │  alternatives considered + why rejected, tradeoff
+└──────────┬────────────────┘  shifts under different priorities, risk flags,
+           │                    open questions. Grounded only in retrieved
+           │                    context — explicit rules against naming specific
+           │                    (staleness-prone) vendor models, against ungrounded
+           │                    derived arithmetic, and against filling in
+           │                    specific figures from training knowledge when the
+           │                    retrieved text only contains a citation pointer.
+           ▼
+   Persisted result, with citations back to source book + chunk
+```
+
+**Stack:** FastAPI (layered routes → services → repositories), AWS Bedrock (Claude Haiku 4.5 for every LLM call site, Titan Text Embeddings V2 for retrieval), Pinecone (vector storage), Redis (session state, 1-hour TTL), Next.js + React Three Fiber (frontend, 3D landing scene). Deployed on Render (backend + managed Redis) and Vercel (frontend) — both free-tier, both real, publicly reachable infrastructure, not local-only.
+
+**Corpus:** two real, purchased technical books per populated domain (currently `ai-ml` and `data`), chunked with a custom pipeline that respects chapter/section boundaries as hard chunk breaks (never merges content across a chapter), strips publisher running-header noise, and handles multiple real-world heading conventions (case-sensitivity, punctuation) found by actually studying each book's structure before ingesting it — not a fixed-size sliding window applied blindly.
+
+**Key engineering decisions:**
+
+- **Deterministic gate + LLM judgment for the elicitation stop condition.** The decision to stop asking questions and move to synthesis is never left to the LLM alone. A hard floor (minimum turns, minimum number of requirement fields populated) blocks synthesis even if the LLM claims it has enough — an LLM saying "sufficient" on a near-empty state gets overridden. A hard ceiling (maximum turns) forces synthesis even if the LLM wants to keep asking, preventing an endless interview. The LLM's only real power is adding friction *within* that floor — one more targeted question, never fewer than the minimum, never more than the ceiling. The gate functions are pure functions, unit-tested independently of any LLM call. *Alternative rejected:* trusting the LLM's own `sufficient: true/false` output directly — verified in practice that this alone isn't reliable enough to gate a cost-relevant synthesis call.
+- **AI-generated query expansion with an embedding-based drift filter.** Retrieval originally embedded only the user's literal stated requirements — meaning it could never surface content matching a concept the user's answers implied but never named. A scenario describing "updates within 1 second" but never saying "streaming" would never retrieve streaming-architecture content, even though it's the correct answer. Fixed by having an LLM propose additional search queries from the gathered requirements — but an ungoverned LLM query generator can drift into irrelevant territory. Every generated query is embedded and compared against the literal query's embedding via cosine similarity; anything below a threshold calibrated against real embeddings (known-good expansions scored 0.224–0.344; a deliberately unrelated query scored 0.078; the threshold sits at 0.15, with real margin on both sides) is dropped.
+- **Domain-tagged single vector index with a thin-results fallback, not one index per domain.** All corpus content lives in one Pinecone index, filtered by a `domain` metadata field at query time. When a domain-filtered search returns too few results or scores too low, retrieval automatically widens to an unfiltered search across the whole corpus rather than surfacing a "no good matches" dead end to the user. *Alternative rejected:* a separate index per domain — more isolation, but no natural fallback path when a domain's content is genuinely thin for a specific query, and more infrastructure to keep in sync as domains grow.
+
+## Real Bugs Caught in Testing
+
+- **A silent requirement-extraction failure.** The schema for extracting structured data from a user's answer used a generic `dict[str, str]` field; the model would correctly reason about what was missing (visible in a separate output field) while returning the extraction field itself completely empty, every time — meaning nothing the user said was ever actually recorded, despite the system behaving as if it understood. Found by inspecting raw model output directly, not by reading the code. Fixed by switching to explicit named schema fields, which forces the model to consider each one individually.
+- **A `NoRegionError` that only reproduced in production.** An AWS SDK client worked locally (where an ambient environment variable happened to satisfy it) but threw immediately in the deployed environment, because the specific AWS SDK in use doesn't read the same region environment variable that a *different* AWS client in the same codebase does — two SDKs, two conventions, silently incompatible. Diagnosed from a real production traceback, not guessed at.
+- **A citation-fabrication issue.** A generated recommendation cited "a 2019 study" with a specific statistic, attributed to the corpus. Manually checking the actual retrieved source chunk showed it contained only a citation pointer (a footnote to a real news article) — not the statistic itself. The model had filled in a plausible, likely-true number from its own training knowledge and presented it as corpus-grounded. Fixed with an explicit rule: a footnote is not license to state facts from general knowledge about what it points to.
+
+## Results
+
+No hard adoption or production-usage numbers exist — there is no live user base or production traffic yet. This is a working, deployed, and thoroughly tested system, not a system with a "served N users" or "saved N hours" claim to make honestly.
+
+What is real and measured:
+
+- **2,606 corpus chunks** ingested from 4 real technical books across 2 domains, each chunking strategy verified against the actual book's structure before running (not assumed from a template).
+- **42 automated tests passing**, covering the elicitation gate logic, the retrieval merge/dedupe behavior, the query-planning drift filter, and the synthesis orchestration — independent of any live LLM call.
+- **Verified end-to-end against live infrastructure repeatedly**, not mocks: real AWS Bedrock calls, real Pinecone queries, real Redis session state, on both a local environment and the deployed production backend.
+
+## What's Next / Known Limitations
+
+- Only 2 of 5 architecture domains (`ai-ml`, `data`) currently have real corpus content; the rest have no real books ingested yet.
+- No hallucination-detection or evaluation feedback loop exists — citations provide traceability, but nothing automatically flags a wrong or unsupported claim.
+- Runs on free-tier hosting (Render + Vercel) — cold starts after inactivity, no SLA. An accepted tradeoff for a project with no production traffic yet, not a hidden gap.
+- Tested exclusively by the builder against real infrastructure, not by real end users — every verification here is "I ran it and checked the output," not "users reported this works."
+- The synthesis prompt has needed multiple targeted fixes for distinct failure modes (vendor-naming staleness, arithmetic, citation grounding) — each fixed individually as found, which means the class of "confidently stated but ungrounded claim" is a real, recurring risk surface that required deliberate, ongoing attention rather than being solved once.
+
+Built solo, end to end, in two weeks.

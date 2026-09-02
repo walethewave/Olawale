@@ -1,0 +1,96 @@
+---
+title: "Doc Gen"
+description: An AI document-generation platform that turns a plain-English project description into a fully formatted, branded deliverable — Word documents, AWS architecture diagrams, or multi-slide decks — built on a filesystem convention that pairs a template with a prompt file instead of a database schema, so a new document type ships as a file addition, not a migration.
+date: 2026-05-01
+industry: AI & cloud consulting (internal tooling)
+role: Solo AI Engineer
+tags:
+  - label: FastAPI
+  - label: AWS Lambda
+  - label: AWS Bedrock
+  - label: LLM document generation
+  - label: python-pptx
+  - label: Docker / CI-CD
+---
+
+# Doc Gen
+
+A multi-team consulting practice produces the same kinds of client-facing artifacts constantly — statements of work, technical proposals, AWS architecture diagrams, pitch decks — and building each one by hand meant formatting drift, inconsistent branding, and hours of repetitive work per document. Doc Gen turns a short natural-language project description into a finished, branded deliverable in seconds.
+
+## What It Does
+
+A user picks their team and a document type — a statement of work, a technical assessment, an AWS architecture diagram, a multi-slide pitch deck — describes the project in plain English, and reviews the AI's extracted fields (with confidence scoring) before the system renders a final, fully formatted `.docx` or `.pptx` ready to download. Seven different AWS architecture diagram layouts and a dozen-plus document types are supported across the practice's internal teams, all through the same underlying pipeline.
+
+## Solution Architecture
+
+```
+Plain-English project description
+  │
+  ▼
+┌───────────────────┐
+│  Static frontend   │   team / type picker → prompt input → review UI
+└─────────┬──────────┘
+          │ HTTPS
+          ▼
+┌──────────────────────────────────────────────────────────┐
+│              FastAPI backend (containerized, on Lambda)    │
+│                                                            │
+│  Convention over schema:                                   │
+│    templates/{team}/{category}/{type}/template.docx|pptx   │
+│    prompts/{team}/{category}/{type}.yaml                   │
+│  → a new content type is a filesystem addition, not a DB   │
+│    migration                                                │
+│                                                            │
+│  ┌─────────────────┐      ┌────────────────────────────┐  │
+│  │    Document      │      │   Architecture diagram      │  │
+│  │    pipeline       │      │   pipeline                  │  │
+│  │                   │      │                             │  │
+│  │  AI field          │      │  AI-produced slot values    │  │
+│  │  extraction        │      │  → generic renderer scans   │  │
+│  │  → confidence       │      │    the .pptx for named      │  │
+│  │    scoring          │      │    placeholders and fills   │  │
+│  │  → human review      │      │    text + icons — new       │  │
+│  │  → docxtpl render     │      │    layouts need zero code   │  │
+│  └─────────────────┘      └──────────────┬─────────────┘  │
+│                                          │                 │
+│                              ┌───────────▼────────────┐    │
+│                              │   Deck assembler         │    │
+│                              │   (manifest-driven):     │    │
+│                              │   static + AI-filled      │    │
+│                              │   content + N generated    │    │
+│                              │   diagram slides, merged    │    │
+│                              │   via a custom cross-        │    │
+│                              │   presentation slide-copy    │    │
+│                              │   primitive (python-pptx      │    │
+│                              │   has no native slide-        │    │
+│                              │   duplication API)             │    │
+│                              └────────────────────────┘    │
+│                                                            │
+│         AWS Bedrock — default model for extraction,        │
+│         a second model routed in for specific higher-      │
+│         precision tasks                                    │
+└──────────────────────────────┬─────────────────────────────┘
+                               │  generated .docx / .pptx
+                               ▼
+                          Browser download
+```
+
+**Key engineering decisions:**
+
+- **Filesystem convention over a database schema for content types.** A document or diagram type is a template file paired 1:1 with a YAML prompt file, resolved by path. Adding a new type is a file addition deployed like any other code change, not a schema migration or an admin panel — at the cost of that catalog not being queryable or editable at runtime the way a DB-backed CMS would be.
+- **A fully generic, convention-based diagram renderer instead of per-layout rendering code.** The renderer scans any `.pptx` template for shapes whose text matches a naming convention and fills them — it has no idea what "network diagram" or "deployment architecture" even means. Adding the eighth layout took a new schema and a new template asset, zero renderer changes. The tradeoff is an implicit contract: the template author and the schema author have to agree on shape naming with no compiler to catch a mismatch.
+- **A narrowly-scoped slide-merge primitive instead of a general-purpose one.** python-pptx has no API for copying a slide between presentations. Rather than build (or pull in) a generic "copy any slide" solution that has to handle every shape type, the primitive handles exactly what the real templates contain — pictures, groups, connectors — and explicitly drops anything else. Smaller surface area to reason about and test, at the cost of needing deliberate extension if a future template introduces a chart or embedded video.
+- **Per-task model routing instead of one model for every call.** Most extraction runs on a fast, inexpensive default model; a small number of higher-stakes extraction paths route to a stronger model explicitly. That's a second code path and an explicit parameter to thread through instead of one universal call — worth it because the higher-precision path measurably did better on documents with real tabular structure, and paying for that everywhere wasn't justified.
+- **Preserving each source template's own visual identity when merging content, instead of forcing one uniform style.** This came directly out of a real bug: composing a diagram template designed for a light background into a dark-themed deck made its text and icons unreadable. The fix derives background, canvas scale, and font size from the contributing template itself rather than the destination — verified against two structurally different templates before shipping.
+
+## Results
+
+No formal usage telemetry exists yet — there's no instrumentation tracking documents generated, time saved, or adoption, so I'm not going to put a number here that isn't backed by measurement. What's concretely true today: the system is live and in active use, generating real client-facing documents across multiple internal practice areas, covering a dozen-plus document types and seven distinct AWS architecture diagram layouts through one shared pipeline, plus a newer branded-deck generator built on the same foundation. The honest result is "in daily use, scope grew from single documents to full multi-slide decks without a rewrite" — not a percentage.
+
+## What's Next / Known Limitations
+
+- **A real, currently-live bug:** the platform returns generated files directly in the API response, and AWS Lambda enforces a hard 6MB limit on that kind of response. Multi-slide decks routinely land at 7-8MB, so deck downloads fail in production today. Diagnosed down to the exact Lambda error (confirmed via logs, not guessed), fix identified — move to uploading the generated file to object storage and returning a short-lived download link instead of the raw bytes — not yet built.
+- **Fully synchronous, no job queue.** Every generation is a single request/response cycle. That's part of why the payload-limit bug exists, and it caps how heavy a single generation can reasonably get before either the response size or the request duration becomes a problem.
+- **Uneven template coverage.** A couple of document types exist only as database-backed custom templates uploaded through the product itself, with no filesystem fallback — anything that assumes "every type has a local template file" (like thumbnail generation) silently skips them.
+- **No automated thumbnail regeneration.** Preview thumbnails for the template catalog are produced by a manual one-off script; they'll drift out of sync as templates are edited unless someone remembers to rerun it.
+- **Single-author project with no code review gate.** At least one earlier change was committed referencing a file that was never actually committed alongside it — caught and fixed later, but it's a real gap that a second reviewer or a stricter CI check (verifying imports resolve against exactly what's staged) would have caught immediately.
