@@ -1,5 +1,8 @@
 import React from 'react';
 
+import Link from 'next/link';
+import { ArrowUpRightIcon } from 'lucide-react';
+
 import MotionWrap from '@/components/motion-wrap';
 import Reveal from '@/components/reveal';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +13,7 @@ type WorkItem = {
   tag: string;
   description: string;
   techTags: string[];
+  href: string;
 };
 
 const workItems: WorkItem[] = [
@@ -18,14 +22,16 @@ const workItems: WorkItem[] = [
     tag: 'Production',
     description:
       'Designed and deployed a multi-agent pipeline — Intent Classifier → Conversation Bot → Product Bot → Support Bot → Escalation Agent — with Redis persistent memory, concurrent async execution, LLM response validation, and automatic fallbacks.',
-    techTags: ['Redis', 'FastAPI', 'LangChain', 'Python', 'Async']
+    techTags: ['Redis', 'FastAPI', 'LangChain', 'Python', 'Async'],
+    href: '/client-work/corivo'
   },
   {
     title: 'Document Intelligence Platform',
     tag: 'Production',
     description:
       'RAG system with confidence scoring over internal fintech documentation. FastAPI REST APIs serving real client queries with semantic search and fallback logic for low-confidence responses.',
-    techTags: ['RAG', 'FastAPI', 'Pinecone', 'Python']
+    techTags: ['RAG', 'FastAPI', 'Pinecone', 'Python'],
+    href: '/client-work/doc_gen'
   }
 ];
 
@@ -50,7 +56,7 @@ function QucoonWork() {
           {workItems.map((item) => (
             <Card
               key={item.title}
-              className="h-full border-border border-l-4 bg-primary/5 shadow-sm dark:bg-primary/10"
+              className="relative h-full border-border border-l-4 bg-primary/5 shadow-sm dark:bg-primary/10"
             >
               <CardContent className="p-4 md:p-6">
                 <div className="flex h-full flex-col gap-4">
@@ -70,7 +76,7 @@ function QucoonWork() {
                     {item.description}
                   </p>
 
-                  <div className="mt-auto flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {item.techTags.map((techTag) => (
                       <Badge
                         key={techTag}
@@ -81,8 +87,21 @@ function QucoonWork() {
                       </Badge>
                     ))}
                   </div>
+
+                  <Link
+                    href={item.href}
+                    className="z-[2] mt-auto flex w-fit items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    View full case study
+                    <ArrowUpRightIcon className="size-4" />
+                  </Link>
                 </div>
               </CardContent>
+              <Link
+                href={item.href}
+                className="absolute inset-0 z-1 block"
+                aria-label={`View full case study: ${item.title}`}
+              />
             </Card>
           ))}
         </div>
