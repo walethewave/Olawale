@@ -17,6 +17,7 @@ const projects = defineCollection({
       github: z.string().optional(),
       thumbnail: z.string().optional(),
       architectureDeck: z.string().optional(),
+      track: z.enum(['production', 'research']).optional(),
       tags: z
         .array(
           z.object({

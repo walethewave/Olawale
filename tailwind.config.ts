@@ -18,6 +18,10 @@ const config = {
       }
     },
     extend: {
+      fontFamily: {
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace']
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -67,6 +71,10 @@ const config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' }
         },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' }
+        },
         spotlight: {
           '0%': {
             opacity: '0',
@@ -81,6 +89,8 @@ const config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        marquee: 'marquee 40s linear infinite',
+        'marquee-reverse': 'marquee 46s linear infinite reverse',
         spotlight: 'spotlight 2s ease .75s 1 forwards'
       }
     }

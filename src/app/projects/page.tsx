@@ -1,108 +1,91 @@
-import Link from 'next/link';
-import { project } from '@/app/source';
-import TextReveal from '@/components/text-reveal';
-import Line from '@/components/line';
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
+
+import { project } from '@/app/source';
+import { metadata as meta } from '@/app/config';
+import StoryView, { StorySlide } from '@/components/story/story-view';
+import {
+  productionOrder,
+  researchOrder,
+  story
+} from '@/components/story/data';
 
 import { createMetadata } from '@/lib/metadata';
-import ProjectCard from '@/app/projects/_components/project-card';
-
-const confidenceAIProject = {
-  title: 'ConfidenceAI — Live Coaching Platform',
-  description:
-    'Real-time AI confidence coaching with explainable scoring. Not generic motivational text — a hybrid keyword + Gemini confidence assessment (biased toward the more cautious read) drives structured, Pydantic-validated coaching responses, with retry-and-fallback logic so a flaky API call never leaves a struggling user with silence.',
-  href: '/projects/confidence_ai_coaching',
-  website: 'https://9punzdhswetzx92taubijy.streamlit.app/',
-  github: 'https://github.com/walethewave/AI-Powered-Confidence-Coaching-App',
-  tags: [
-    { label: 'Google Gemini' },
-    { label: 'Streamlit' },
-    { label: 'Pydantic' },
-    { label: 'Python' },
-    { label: 'Live Deployment' }
-  ],
-  thumbnail: '/images/projects/confidence_ai_coaching/cover.jpg'
-};
 
 export const metadata = createMetadata({
   title: 'Projects',
   description: 'Here are some projects I have worked on.'
 });
 
-export default function ProjectsPage(): React.ReactElement {
-  const projects = [...project.getPages()].sort(
-    (a, b) =>
-      new Date(b.data.date ?? b.file.name).getTime() -
-      new Date(a.data.date ?? a.file.name).getTime()
-  );
+type Track = 'production' | 'research';
 
-  const displayProjects = [
-    ...projects
-      .filter((project) => project.data.title !== confidenceAIProject.title)
-      .slice(0, 2)
-      .map((project) => ({
-        title: project.data.title,
-        description: project.data.description,
-        href: project.url,
-        website: project.data.website,
-        github: project.data.github,
-        tags: project.data.tags,
-        thumbnail:
-          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
-      })),
-    confidenceAIProject,
-    ...projects
-      .filter((project) => project.data.title !== confidenceAIProject.title)
-      .slice(2)
-      .map((project) => ({
-        title: project.data.title,
-        description: project.data.description,
-        href: project.url,
-        website: project.data.website,
-        github: project.data.github,
-        tags: project.data.tags,
-        thumbnail:
-          project.data.thumbnail ?? `/images/projects/${project.slugs[0]}/cover.jpg`
-      }))
-  ];
+const GITHUB_PROFILE = 'https://github.com/walethewave';
+// Repos that are private, so a direct link would 404 for visitors
+const privateRepos = new Set(['insightflow', 'groundwork']);
+
+// Drop a file at public/architecture/projects/<slug>/deck.pdf (or deck.pptx)
+// and the Solution architecture button opens it automatically.
+function findDeck(slug: string): string | undefined {
+  const dir = path.join(process.cwd(), 'public', 'architecture', 'projects', slug);
+  for (const file of ['deck.pdf', 'deck.pptx']) {
+    if (fs.existsSync(path.join(dir, file))) {
+      return `/architecture/projects/${slug}/${file}`;
+    }
+  }
+  return undefined;
+}
+
+function buildSlides(track?: Track): StorySlide[] {
+  const pages = project.getPages();
+  const order =
+    track === 'production'
+      ? productionOrder
+      : track === 'research'
+        ? researchOrder
+        : [...productionOrder, ...researchOrder];
+
+  return order.flatMap((slug): StorySlide[] => {
+    const page = pages.find((p) => p.slugs[0] === slug);
+    const entry = story[slug];
+    if (!page || !entry) return [];
+
+    return [
+      {
+        slug,
+        title: page.data.title,
+        short: entry.short,
+        year: new Date(page.data.date ?? Date.now()).getFullYear().toString(),
+        track: productionOrder.includes(slug) ? 'production' : 'research',
+        summary: entry.summary,
+        caption: entry.caption,
+        layout: entry.layout,
+        stages: entry.stages,
+        tags: (page.data.tags ?? []).map((t) => t.label),
+        href: page.url,
+        website: page.data.website,
+        github: privateRepos.has(slug) ? GITHUB_PROFILE : page.data.github,
+        deckHref: findDeck(slug)
+      }
+    ];
+  });
+}
+
+export default function ProjectsPage({
+  searchParams
+}: {
+  searchParams?: { track?: string };
+}): React.ReactElement {
+  const track: Track | undefined =
+    searchParams?.track === 'production' || searchParams?.track === 'research'
+      ? searchParams.track
+      : undefined;
 
   return (
-    <main className="my-14 flex-1">
-      <section
-        className="relative flex min-h-[calc(50dvh)] items-center justify-center"
-        id="hero"
-      >
-        <div className="flex flex-col items-center md:max-w-7xl">
-          <h1 className="leading-wide tracking-relaxed text-5xl sm:text-6xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl">
-            <TextReveal delay={0.2}>My Projects</TextReveal>
-          </h1>
-
-          <Line className={'mt-16'} />
-        </div>
-        {/*<motion.div*/}
-        {/*  className="absolute bottom-8 left-1/2 -translate-x-1/2 transform"*/}
-        {/*  style={{ opacity }}*/}
-        {/*  animate={{ y: [0, 10, 0] }}*/}
-        {/*  transition={{ duration: 1.5, repeat: Infinity }}*/}
-        {/*>*/}
-        {/*  <ChevronDown className="h-8 w-8" />*/}
-        {/*</motion.div>*/}
-      </section>
-      {/*className="container max-sm:px-0 md:py-12"*/}
-      <section className="grid w-full grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3">
-        {displayProjects.map((project, index) => (
-          <ProjectCard
-            title={project.title}
-            href={project.href}
-            description={project.description}
-            website={project.website}
-            github={project.github}
-            key={`project_${index}`}
-            tags={project.tags}
-            thumbnail={project.thumbnail}
-          />
-        ))}
-      </section>
-    </main>
+    <StoryView
+      slides={buildSlides(track)}
+      activeTrack={track}
+      authorName={meta.author.name}
+    />
   );
 }

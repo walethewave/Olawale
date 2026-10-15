@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Instrument_Sans } from 'next/font/google';
+import { Instrument_Sans, Instrument_Serif } from 'next/font/google';
+import { GeistMono } from 'geist/font/mono';
 import '@/styles/globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -11,6 +12,12 @@ import Providers from '@/app/providers';
 import { createMetadata } from '@/lib/metadata';
 
 const instrument_sans = Instrument_Sans({ subsets: ['latin'] });
+const instrument_serif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-serif'
+});
 
 export const metadata = createMetadata({
   title: {
@@ -31,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={instrument_sans.className}>
+      <body className={`${instrument_sans.className} ${instrument_serif.variable} ${GeistMono.variable}`}>
         <Providers>
           <Loader />
           {children}

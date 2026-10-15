@@ -1,3 +1,4 @@
+import CvMenu from '@/components/cv-menu';
 import React from 'react';
 import MotionWrap from '@/components/motion-wrap';
 import Image from 'next/image';
@@ -34,11 +35,7 @@ function About() {
                 </TextReveal>
               </p>
               <div className="flex gap-2">
-                <Button asChild variant={'outline'}>
-                  <a href="resume.pdf" target="_blank">
-                    View Resume <ArrowUpRightIcon className="ml-2 size-5" />
-                  </a>
-                </Button>
+                <CvMenu variant="outline" />
                 {/* <Button asChild>
                   <Link href="/about">Learn More</Link>
                 </Button> */}

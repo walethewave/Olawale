@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Preloader } from '@/components/preloader';
 import { AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 export default function Loader() {
   const [progress, setProgress] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+  const pathname = usePathname();
+  // The homepage has its own entrance animation, so skip the preloader there
+  const [isVisible, setIsVisible] = useState(pathname !== '/');
   const loadTime = 1000;
 
   const updateProgress = useCallback(() => {

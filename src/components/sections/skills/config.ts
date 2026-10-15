@@ -65,3 +65,32 @@ const skills: Skill[] = [
 ];
 
 export { trimLen, skills };
+
+// Grouped tech stack, shared by the skills sections
+const skillGroups = [
+  {
+    title: 'Languages & Backend',
+    items: ['Python', 'FastAPI', 'PostgreSQL', 'Docker', 'Redis']
+  },
+  {
+    title: 'AI / ML / NLP',
+    items: [
+      'PyTorch',
+      'TensorFlow',
+      'HuggingFace',
+      'scikit-learn',
+      'LangChain',
+      'OpenAI'
+    ]
+  },
+  {
+    title: 'Cloud & Infrastructure',
+    items: ['AWS', 'Pinecone', 'Supabase', 'Streamlit']
+  },
+  {
+    title: 'Data & Visualization',
+    items: ['Pandas', 'NumPy', 'Power BI', 'Plotly']
+  }
+] as const;
+
+export { skillGroups };

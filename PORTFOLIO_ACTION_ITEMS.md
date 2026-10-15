@@ -2,6 +2,14 @@
 
 Status snapshot as of 2026-09-03. This file is a working checklist, not published content — it lives at the repo root, outside `content/`, so it never renders on the live site.
 
+## 0. Solution Architecture upload (new)
+
+On the homepage story view, each project's **Solution architecture** button opens an uploaded file automatically. Drop a PDF (preferred) or PPTX at:
+
+`public/architecture/projects/<project-slug>/deck.pdf`  (or `deck.pptx`)
+
+Folders already exist for all 15 projects. Until a file is there, the button falls back to the project's own case-study section. The Insightflow and Groundwork GitHub buttons point at the GitHub profile because those repos are private.
+
 ## 1. Needs a PowerPoint deck uploaded (field is wired, folder is empty)
 
 These pages already show a "Solution Architecture Deck" button. Right now it points at a file that doesn't exist yet — drop the `.pptx` at the exact path below (filename must be `deck.pptx`) and it goes live with no further code changes.

@@ -59,6 +59,58 @@
   }
 }
 
+/* Site accent palette: warm paper, near-black ink, one burnt-orange accent.
+   Defined globally so the pill header looks right on every page. */
+@layer base {
+  :root {
+    --paper: 40 30% 94%;
+    --ink: 24 20% 7%;
+    --ink-soft: 24 8% 38%;
+    --accent: 12 80% 52%;
+    --line: 30 15% 82%;
+  }
+
+  .dark {
+    --paper: 30 12% 6%;
+    --ink: 40 30% 94%;
+    --ink-soft: 30 8% 62%;
+    --accent: 14 90% 60%;
+    --line: 30 8% 16%;
+  }
+
+  .home-theme {
+    @apply bg-[hsl(var(--paper))] text-[hsl(var(--ink))];
+  }
+
+  /* Project story view follows the site theme (light by default, dark under .dark) */
+  .story-theme {
+    --paper: 40 30% 94%;
+    --ink: 24 20% 7%;
+    --ink-soft: 24 8% 38%;
+    --accent: 12 80% 52%;
+    --line: 30 15% 82%;
+    --panel: 40 30% 97%;
+    --plate-top: 40 25% 91%;
+    --plate-a: 30 12% 76%;
+    --plate-b: 30 12% 83%;
+    --plate-stroke: 30 8% 58%;
+    @apply bg-[hsl(var(--paper))] text-[hsl(var(--ink))];
+  }
+
+  .dark .story-theme {
+    --paper: 0 0% 4%;
+    --ink: 40 20% 92%;
+    --ink-soft: 30 6% 58%;
+    --accent: 16 100% 58%;
+    --line: 0 0% 17%;
+    --panel: 0 0% 6.5%;
+    --plate-top: 0 0% 8%;
+    --plate-a: 0 0% 5%;
+    --plate-b: 0 0% 6.5%;
+    --plate-stroke: 0 0% 24%;
+  }
+}
+
 @layer base {
   html.lenis,
   html.lenis body {
@@ -86,5 +138,19 @@
   .shadow-sm {
     /* todo: cleanup css */
     @apply shadow-none;
+  }
+}
+
+@layer utilities {
+  .marquee-mask {
+    mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee,
+    .animate-marquee-reverse {
+      animation: none;
+    }
   }
 }
