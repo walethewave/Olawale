@@ -1,6 +1,4 @@
 import React from 'react';
-import fs from 'fs';
-import path from 'path';
 
 import { project } from '@/app/source';
 import { metadata as meta } from '@/app/config';
@@ -24,16 +22,11 @@ const GITHUB_PROFILE = 'https://github.com/walethewave';
 // Repos that are private, so a direct link would 404 for visitors
 const privateRepos = new Set(['insightflow', 'groundwork']);
 
-// Drop a file at public/architecture/projects/<slug>/deck.pdf (or deck.pptx)
-// and the Solution architecture button opens it automatically.
-function findDeck(slug: string): string | undefined {
-  const dir = path.join(process.cwd(), 'public', 'architecture', 'projects', slug);
-  for (const file of ['deck.pdf', 'deck.pptx']) {
-    if (fs.existsSync(path.join(dir, file))) {
-      return `/architecture/projects/${slug}/${file}`;
-    }
-  }
-  return undefined;
+// Every project ships a deck at this path. Replace the file (keep the name
+// deck.pdf) to swap in your own; public/ files are served from the CDN, so the
+// path is fixed rather than checked on disk at request time.
+function deckPath(slug: string): string {
+  return `/architecture/projects/${slug}/deck.pdf`;
 }
 
 function buildSlides(track?: Track): StorySlide[] {
@@ -65,7 +58,7 @@ function buildSlides(track?: Track): StorySlide[] {
         href: page.url,
         website: page.data.website,
         github: privateRepos.has(slug) ? GITHUB_PROFILE : page.data.github,
-        deckHref: findDeck(slug)
+        deckHref: deckPath(slug)
       }
     ];
   });

@@ -2,13 +2,14 @@
 
 Status snapshot as of 2026-09-03. This file is a working checklist, not published content — it lives at the repo root, outside `content/`, so it never renders on the live site.
 
-## 0. Solution Architecture upload (new)
+## 0. Solution Architecture PDFs
 
-On the homepage story view, each project's **Solution architecture** button opens an uploaded file automatically. Drop a PDF (preferred) or PPTX at:
+Every project has a generated 4-page Solution Architecture PDF at `public/architecture/projects/<project-slug>/deck.pdf`; the **Solution architecture** button on the story view opens it. To use your own, save it over that file (the name must stay `deck.pdf`). A file you upload is never overwritten by the generator.
 
-`public/architecture/projects/<project-slug>/deck.pdf`  (or `deck.pptx`)
+Regenerate the interim ones from the project write-ups with:
+`uv run --with reportlab python scripts/architecture/build.py [slug ...]`
 
-Folders already exist for all 15 projects. Until a file is there, the button falls back to the project's own case-study section. The Insightflow and Groundwork GitHub buttons point at the GitHub profile because those repos are private.
+The Insightflow and Groundwork GitHub buttons point at the GitHub profile because those repos are private.
 
 ## 1. Needs a PowerPoint deck uploaded (field is wired, folder is empty)
 
